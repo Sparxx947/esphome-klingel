@@ -1,0 +1,132 @@
+# HA-Entwurf Tuerklingel — NOCH NICHT IN HA (Stand 04.10.2026)
+# Voraussetzung: ESPHome-Geraet „klingel" adoptiert → event.klingel_erdgeschoss / _etage_1 / _etage_2
+# (Namen nach Adoption pruefen; sie folgen den substitutions taster_1..3 im ESPHome-YAML).
+# Muster: automation.haustur_person_erkannt_handy (Push mit Bild) +
+#         automation.kreativraum_meldung_wenn_3d_druck_fertig_oder_fehlgeschlagen (Alexa-Signal).
+# Panels: wandpanel = EZpad (EG), wandpanel_etage_1 = Galaxy Tab A8, wandpanel_etage_2 = UMIDIGI.
+#
+# Event-Entitaeten: Zustand = Zeitstempel des letzten Drucks.
+#   unavailable → alter Zeitstempel = ESP verbindet neu (KEIN Druck)  → not_from: unavailable
+#   unknown     → Zeitstempel      = allererster Druck (MUSS melden) → unknown deshalb NICHT ausschliessen
+
+template:
+  # Je Etage ein Signal fuer eine eigene Alexa-Routine. Eigenstaendig, nach 60 s von selbst wieder aus.
+  - triggers:
+      - trigger: state
+        entity_id: event.klingel_erdgeschoss
+        not_from: [unavailable]
+        not_to: [unavailable, unknown]
+    binary_sensor:
+      - name: Klingel Erdgeschoss
+        unique_id: klingel_erdgeschoss_alexa
+        device_class: motion
+        state: "{{ trigger.to_state.attributes.event_type == 'gedrueckt' }}"
+        auto_off: 60
+  - triggers:
+      - trigger: state
+        entity_id: event.klingel_etage_1
+        not_from: [unavailable]
+        not_to: [unavailable, unknown]
+    binary_sensor:
+      - name: Klingel Etage 1
+        unique_id: klingel_etage_1_alexa
+        device_class: motion
+        state: "{{ trigger.to_state.attributes.event_type == 'gedrueckt' }}"
+        auto_off: 60
+  - triggers:
+      - trigger: state
+        entity_id: event.klingel_etage_2
+        not_from: [unavailable]
+        not_to: [unavailable, unknown]
+    binary_sensor:
+      - name: Klingel Etage 2
+        unique_id: klingel_etage_2_alexa
+        device_class: motion
+        state: "{{ trigger.to_state.attributes.event_type == 'gedrueckt' }}"
+        auto_off: 60
+
+automation:
+  - id: klingel_haustuer_meldung
+    alias: "Haustür: Klingel → Handy, Wandpanels"
+    description: >-
+      Klingeltaster EG / Etage 1 / Etage 2 (ESPHome klingel) melden: Push mit Kamerabild und Etage —
+      Erdgeschoss an Bewohner EG, Etage 1 / Etage 2 an Bewohner Etage 1/2 (Jens 06.10.2026) —, alle drei Wandpanels wecken + Startseite (Livebild Haustuer) + Overlay mit Etage.
+      Alexa laeuft getrennt ueber binary_sensor.klingel_* (Trigger-Templates, 60 s).
+      Sperrzeit 15 s JE TASTER (Abstand zum vorigen Druck desselben Tasters). Angelegt 04.10.2026.
+    triggers:
+      - trigger: state
+        entity_id: [event.klingel_erdgeschoss, event.klingel_etage_1, event.klingel_etage_2]
+        not_from: [unavailable]              # Wiederverbinden des ESP ist kein Druck
+        not_to: [unavailable, unknown]
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.to_state.attributes.event_type == 'gedrueckt' }}"
+      - alias: Sturmklingeln — derselbe Taster vor weniger als 15 s
+        condition: template
+        value_template: >-
+          {{ trigger.from_state.state == 'unknown'
+             or (as_timestamp(trigger.to_state.state) - as_timestamp(trigger.from_state.state, 0)) > 15 }}
+    variables:
+      etage: >-
+        {{ {'event.klingel_erdgeschoss': 'Erdgeschoss', 'event.klingel_etage_1': 'Etage 1',
+            'event.klingel_etage_2': 'Etage 2'}.get(trigger.entity_id, 'Haustür') }}
+      titel: "🔔 Es klingelt: {{ etage }}"
+    actions:
+      # Empfaenger je Etage (Jens 06.10.2026): EG → Bewohner EG, E1/E2 → Bewohner Etage 1/2
+      - if: "{{ etage == 'Erdgeschoss' }}"
+        then:
+          - action: notify.mobile_app_handy_eg_1           # Bewohner EG 1
+            continue_on_error: true
+            data: &push
+              title: "{{ titel }}"
+              message: "{{ now().strftime('%H:%M:%S') }} – jemand klingelt an der Haustür für {{ etage }}."
+              data:
+                image: /api/camera_proxy/camera.haustuer_standardauflosung
+                clickAction: /etagen-home/uebersicht
+                tag: "klingel_{{ trigger.entity_id.split('.')[1] }}"
+                channel: Klingel
+                ttl: 0
+                priority: high
+          - action: notify.mobile_app_handy_eg_2                # Bewohner EG 2
+            continue_on_error: true
+            data: *push
+        else:
+          - action: notify.mobile_app_handy_og_1                # Bewohner OG 1
+            continue_on_error: true
+            data: *push
+          - action: notify.mobile_app_handy_og_2                # Bewohner OG 2
+            continue_on_error: true
+            data: *push
+      - action: switch.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - switch.wandpanel_bildschirm
+            - switch.wandpanel_etage_1_bildschirm
+            - switch.wandpanel_etage_2_bildschirm
+      - action: button.press               # Startseite = Uebersicht mit Livebild Haustuer
+        continue_on_error: true
+        target:
+          entity_id:
+            - button.wandpanel_start_url_laden
+            - button.wandpanel_etage_1_start_url_laden
+            - button.wandpanel_etage_2_start_url_laden
+      - action: notify.send_message
+        continue_on_error: true
+        target:
+          entity_id:
+            - notify.wandpanel_overlay_nachricht
+            - notify.wandpanel_etage_1_overlay_nachricht
+            - notify.wandpanel_etage_2_overlay_nachricht
+        data:
+          message: "{{ titel }}"
+    mode: parallel                          # zwei Etagen kurz nacheinander → beide melden
+    max: 6
+
+# Alexa (eigener Skill), danach in /config/alexa.yaml unter filter.include_entities ergaenzen:
+#   - binary_sensor.klingel_erdgeschoss
+#   - binary_sensor.klingel_etage_1
+#   - binary_sensor.klingel_etage_2
+# und je entity_config: name „Klingel Erdgeschoss" usw., display_categories: MOTION_SENSOR
+# Dann in der Alexa-App: Geraetesuche → je Etage eine Routine „Wenn Klingel <Etage> Bewegung erkennt →
+# Ankuendigung: Es klingelt fuer <Etage>" (Echos frei waehlbar).
