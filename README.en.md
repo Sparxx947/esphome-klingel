@@ -57,9 +57,9 @@ press. (But see the important note on **filter order** under [Troubleshooting](d
 | Tap point | **decided**: junction box top left (doorbell wires only, confirmed by Jens) | 06.10. |
 | Schematic PC817 + reverse diode | **done** as SVG (`plaene/klingel_plan.svg`), PDF still missing | 06.10. |
 | PC817C, diode assortment | **delivered** | 07.10. (confirmed by Jens on 08.10.) |
-| Mini solder boards 45 × 39 mm | **ordered**, delivery announced | Fri 09.10. |
+| Mini solder boards 45 × 39 mm | **delivered** | 09.10. |
 | 1 kΩ resistors | **open** – unclear whether included in the existing assortment | – |
-| Mapping wire ↔ floor in the junction box | **open** – measurement planned | Fri 09.10. 18:30 |
+| Mapping wire ↔ floor in the junction box | **open** – measurement planned | Sat 10.10. (moved from 09.10.) |
 | Chime voltage (8 V or 12 V) | **open** | – |
 | Solder board, first flash, adoption in HA/Builder, static IP | **open** | – |
 | HA package `ha/klingel.yaml` | **draft**, YAML parsed, lockout logic tested in HA, **not yet created in HA** | 04./06.10. |
@@ -75,7 +75,7 @@ press. (But see the important note on **filter order** under [Troubleshooting](d
 | Optocoupler | 3 (+ spare) | PC817C, DIP-4, 50 pieces (ALLECIN) | Amazon.de, **B0CBKK6T3D**, €7.99 | delivered 07.10. |
 | Reverse diode | 3 | 1N4007 (alternatively 1N5819 – recovery time irrelevant at 50 Hz) from diode assortment (BOJACK) | Amazon.de, **B07YK3XMQQ**, €10.99 (shared with the tank measurement project) | delivered 07.10. |
 | Series resistor | 3 | 1 kΩ, 0.25 W is enough (~10 mA, ~0.12 W) | resistor assortment (AZ-Delivery) – **Jens checks whether 1 kΩ is included**; only 220 Ω and 10 kΩ are confirmed there | **open** |
-| Perfboard | 1 | mini solder board 45 × 39 mm, 5 pieces | Amazon.de, **B073FVX29X**, €5.19 | ordered, delivery Fri 09.10. |
+| Perfboard | 1 | mini solder board 45 × 39 mm, 5 pieces | Amazon.de, **B073FVX29X**, €5.19 | delivered 09.10. |
 | Power supply | 1 | USB power supply 5 V (type not fixed) for the Schuko socket in the left distribution board | – | **unresolved** (in stock?) |
 | USB cable | 1 | matching the D1 mini, length socket → junction box | – | **unresolved** |
 | Wires junction box → board | 4 conductors (3 floor wires + return) | thin stranded wire / bell wire; connection in the box (terminal strip/WAGO) | – | **not fixed** |
@@ -198,7 +198,7 @@ File: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | [docs/fehlersuche.en.md](docs/fehlersuche.en.md) | known and foreseeable failure patterns with cause and solution |
 | [docs/verlauf.en.md](docs/verlauf.en.md) | decisions and discarded variants (PC814, transformer supply, diode tap) |
 
-**Short version of the sequence:** check parts → measure wires (Fri 09.10.) → solder board → bench test → first flash →
+**Short version of the sequence:** check parts → measure wires (Sat 10.10.) → solder board → bench test → first flash →
 HA/Builder/static IP → installation at the junction box → ring once per floor → create HA package → Alexa routines.
 
 **Safety:** Before opening any terminals, switch off the circuit breaker of the bell transformer. According to a visual
@@ -237,11 +237,11 @@ Check before installation: start URL of the panels on floors 1/2 (the EZpad on t
 
 | # | Item | Who | Date |
 |---|---|---|---|
-| 1 | Measure the wires in the junction box and assign floors (multimeter V~) | Jens | **Fri 09.10.2026 18:30** |
+| 1 | Measure the wires in the junction box and assign floors (multimeter V~) | Jens | **Sat 10.10.2026** (moved from 09.10.) |
 | 2 | Read the masking-tape labels in the box (cross-check to the measurement) | Jens | with 1 |
 | 3 | Determine chime voltage: 8 V (terminals 2–4) or 12 V (2–8) | Jens | with 1 |
 | 4 | 1 kΩ in the resistor assortment? Otherwise buy | Jens | before soldering |
-| 5 | Mini solder board delivery | – | Fri 09.10. |
+| 5 | Mini solder board delivery | – | ✅ delivered 09.10. |
 | 6 | Check/change **filter order** in `klingel.yaml` (see troubleshooting no. 1) – untested | Claude/Jens | before the first flash |
 | 7 | Update header comments in `klingel.yaml` to PC817 + USB supply (documentation, not a functional bug) | – | at the next firmware update |
 | 8 | Generate/print the schematic as PDF (PC817 + reverse diode) | Claude | after wire assignment |
