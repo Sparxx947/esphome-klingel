@@ -15,7 +15,8 @@
 | 06.10. ~21:00 | Teile | PC814 bei Amazon.de nicht vor 15.10. lieferbar → **PC817C** + antiparallele Gegendiode (1N4007/1N5819 aus dem Diodensortiment). Vorwiderstand 1 kΩ / 0,25 W. Lochraster: Minilötplatinen 45 × 39 mm. Beides von Jens bestellt. |
 | 06.10. | Werkstattbuch | Abschnitt K1 mit Schaltplan PC817 + 1N4007 (Strich an Pin 1). |
 | 07.10. | Lieferung | PC817C und Diodensortiment da (von Jens am 08.10. bestätigt). |
-| 09.10. (geplant) | | Minilötplatinen; 18:30 Adern in der Abzweigdose messen. |
+| 09.10. | Lieferung | Minilötplatinen da → Teile komplett (PC817C, Dioden, Platinen). Adern-Messung auf Sa 10.10. verschoben. |
+| 10.10. (geplant) | | Adern in der Abzweigdose messen und Etagen zuordnen. |
 
 ## Verworfene Varianten
 

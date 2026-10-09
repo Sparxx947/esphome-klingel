@@ -15,7 +15,8 @@
 | 06.10. ~21:00 | Parts | PC814 not available on Amazon.de before 15.10. → **PC817C** + anti-parallel reverse diode (1N4007/1N5819 from the diode assortment). Series resistor 1 kΩ / 0.25 W. Perfboard: mini solder boards 45 × 39 mm. Both ordered by Jens. |
 | 06.10. | Workshop book | Section K1 with schematic PC817 + 1N4007 (stripe to pin 1). |
 | 07.10. | Delivery | PC817C and diode assortment arrived (confirmed by Jens on 08.10.). |
-| 09.10. (planned) | | Mini solder boards; 18:30 measure wires in the junction box. |
+| 09.10. | Delivery | Mini solder boards arrived → parts complete (PC817C, diodes, boards). Wire measurement moved to Sat 10.10. |
+| 10.10. (planned) | | Measure the wires in the junction box and assign floors. |
 
 ## Discarded variants
 

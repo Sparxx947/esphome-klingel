@@ -57,9 +57,9 @@ Deshalb liegt eine **1N4007 antiparallel** zur LED und fängt die negative Halbw
 | Abgriffpunkt | **entschieden**: Abzweigdose oben links (nur Klingeladern, von Jens bestätigt) | 06.10. |
 | Schaltplan PC817 + Gegendiode | **fertig** als SVG (`plaene/klingel_plan.svg`), PDF fehlt noch | 06.10. |
 | PC817C, Diodensortiment | **geliefert** | 07.10. (von Jens am 08.10. bestätigt) |
-| Minilötplatinen 45 × 39 mm | **bestellt**, Lieferung angekündigt | Fr 09.10. |
+| Minilötplatinen 45 × 39 mm | **geliefert** | 09.10. |
 | 1 kΩ-Widerstände | **offen** – unklar, ob im vorhandenen Sortiment | – |
-| Zuordnung Ader ↔ Etage in der Abzweigdose | **offen** – Messung geplant | Fr 09.10. 18:30 |
+| Zuordnung Ader ↔ Etage in der Abzweigdose | **offen** – Messung geplant | Sa 10.10. (verschoben vom 09.10.) |
 | Gong-Spannung (8 V oder 12 V) | **offen** | – |
 | Platine löten, Erstflash, Adoption in HA/Builder, feste IP | **offen** | – |
 | HA-Paket `ha/klingel.yaml` | **Entwurf**, YAML geparst, Sperrlogik in HA getestet, **noch nicht in HA angelegt** | 04./06.10. |
@@ -75,7 +75,7 @@ Deshalb liegt eine **1N4007 antiparallel** zur LED und fängt die negative Halbw
 | Optokoppler | 3 (+ Reserve) | PC817C, DIP-4, 50 Stück (ALLECIN) | Amazon.de, **B0CBKK6T3D**, 7,99 € | geliefert 07.10. |
 | Gegendiode | 3 | 1N4007 (alternativ 1N5819 – Erholzeit bei 50 Hz egal) aus Diodensortiment (BOJACK) | Amazon.de, **B07YK3XMQQ**, 10,99 € (gemeinsam mit Projekt Tankmessung) | geliefert 07.10. |
 | Vorwiderstand | 3 | 1 kΩ, 0,25 W reicht (~10 mA, ~0,12 W) | Widerstandssortiment (AZ-Delivery) – **ob 1 kΩ enthalten ist, prüft Jens**; belegt sind dort nur 220 Ω und 10 kΩ | **offen** |
-| Lochraster | 1 | Minilötplatine 45 × 39 mm, 5 Stück | Amazon.de, **B073FVX29X**, 5,19 € | bestellt, Lieferung Fr 09.10. |
+| Lochraster | 1 | Minilötplatine 45 × 39 mm, 5 Stück | Amazon.de, **B073FVX29X**, 5,19 € | geliefert 09.10. |
 | Netzteil | 1 | USB-Netzteil 5 V (Typ nicht festgelegt) für die Schuko-Steckdose im linken Verteiler | – | **ungeklärt** (Bestand?) |
 | USB-Kabel | 1 | passend zum D1 mini, Länge Steckdose → Abzweigdose | – | **ungeklärt** |
 | Leitungen Abzweigdose → Platine | 4 Adern (3 Etagenadern + Rückleiter) | dünne Litze / Klingeldraht; Verbindung in der Dose (Lüster/WAGO) | – | **nicht festgelegt** |
@@ -198,7 +198,7 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | [docs/fehlersuche.md](docs/fehlersuche.md) | bekannte und absehbare Fehlerbilder mit Ursache und Lösung |
 | [docs/verlauf.md](docs/verlauf.md) | Entscheidungen und verworfene Varianten (PC814, Trafo-Versorgung, Dioden-Abgriff) |
 
-**Kurzfassung der Reihenfolge:** Teile prüfen → Adern messen (Fr 09.10.) → Platine löten → Tischtest → Erstflash →
+**Kurzfassung der Reihenfolge:** Teile prüfen → Adern messen (Sa 10.10.) → Platine löten → Tischtest → Erstflash →
 HA/Builder/feste IP → Einbau an der Abzweigdose → je Etage einmal klingeln → HA-Paket anlegen → Alexa-Routinen.
 
 **Sicherheit:** Vor dem Öffnen von Klemmen die Sicherung des Klingeltrafos ausschalten. In der Abzweigdose liegen laut
@@ -235,11 +235,11 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 
 | # | Punkt | Wer | Termin |
 |---|---|---|---|
-| 1 | Adern in der Abzweigdose messen und Etagen zuordnen (Multimeter V~) | Jens | **Fr 09.10.2026 18:30** |
+| 1 | Adern in der Abzweigdose messen und Etagen zuordnen (Multimeter V~) | Jens | **Sa 10.10.2026** (verschoben vom 09.10.) |
 | 2 | Kreppband-Beschriftung in der Dose lesen (Gegenprobe zur Messung) | Jens | mit 1 |
 | 3 | Gong-Spannung feststellen: 8 V (Klemmen 2–4) oder 12 V (2–8) | Jens | mit 1 |
 | 4 | 1 kΩ im Widerstandssortiment vorhanden? Sonst nachkaufen | Jens | vor dem Löten |
-| 5 | Minilötplatinen-Lieferung | – | Fr 09.10. |
+| 5 | Minilötplatinen-Lieferung | – | ✅ geliefert 09.10. |
 | 6 | **Filter-Reihenfolge** in `klingel.yaml` prüfen/umstellen (siehe Fehlersuche Nr. 1) – ungetestet | Claude/Jens | vor dem Erstflash |
 | 7 | Kopfkommentare in `klingel.yaml` auf PC817 + USB-Versorgung aktualisieren (Doku, kein Funktionsfehler) | – | beim nächsten Firmware-Update |
 | 8 | Schaltplan als PDF erzeugen/drucken (PC817 + Gegendiode) | Claude | nach Aderzuordnung |
