@@ -22,7 +22,7 @@ Kennzeichnung: **belegt** = in den Projektnotizen/anderen ESP-Projekten tatsäch
 | 13 | D1 bootet nicht / hängt beim Start | Eingang auf D3/D4/D8 (Boot-Pins) gelegt | nur D5/D6/D7 verwenden | abgeleitet (Pinwahl 04.10.) |
 | 14 | Events verspätet / Gerät oft `unavailable` | schwaches WLAN am Verteiler | RSSI prüfen, Lage ändern, notfalls D1 mini Pro mit Außenantenne | abgeleitet |
 | 15 | Push kommt bei einer Person nicht an | falscher `notify`-Dienst / App abgemeldet | Dienste in HA prüfen; `continue_on_error` sorgt dafür, dass die übrigen Aktionen weiterlaufen | abgeleitet |
-| 16 | Event `gedrueckt` erscheint erst nach dem OFF des Binärsensors | **ungeklärt** (siehe unten) | nach der HA-Adoption prüfen; Ausweg: Automation auf den Binärsensor EIN statt auf das Event | belegt (Log 11.10.), **offen** |
+| 16 | Event `gedrueckt` erscheint erst nach dem OFF des Binärsensors | nur Ausgabe des Log-Clients (siehe unten) | nichts – in HA kommt das Event beim Drücken | **geklärt** 11.10. |
 | 17 | Kanal reagiert nicht, Diodentest zeigt „OL“ oder falsche Werte | Minilötplatine hat **einzelne Lötpunkte ohne Leiterbahnen** – Verbindung nicht hergestellt (11.10. fehlten Gegendiode ↔ Pin 1/Pin 2, Widerstand ↔ Pin 1, Pin 2 ↔ Rückleiter) | alle Verbindungen auf der Lötseite mit Draht/Zinnbrücke herstellen, je Kanal Diodentest (1,08 V / 0,60 V) | belegt (11.10.) |
 | 18 | Tischtest: keine Erkennung mit 18650-Shield als Quelle | Shield (Powerbank-Platine) schaltet bei ~8 mA Last den Ausgang vermutlich nicht ein (nicht weiter untersucht) | nackte 18650-Zelle oder Labornetzteil nehmen | belegt (11.10.), Ursache vermutet |
 
@@ -69,7 +69,17 @@ Der Tischtest mit Gleichspannung deckt das ursprüngliche Problem **nicht** auf 
 
 ## 16. Event erscheint erst nach dem OFF
 
-**Stand: offen, nicht geklärt.**
+**Stand: geklärt (11.10.) – kein Fehler.** In Home Assistant kommt das Event beim Drücken an:
+
+| Entität | Zeit (16:35) |
+|---|---|
+| `event.klingel_erdgeschoss` → `gedrueckt` | 49,818 s |
+| `binary_sensor.klingel_erdgeschoss_gedruckt` EIN | 49,922 s |
+| `binary_sensor.klingel_erdgeschoss_gedruckt` AUS | 53,588 s |
+
+Die Verzögerung entstand nur in der Ausgabe des `esphome logs`-Clients. Die Automation kann auf das Event auslösen.
+
+Ursprüngliche Beobachtung:
 
 Beim Tischtest am 11.10. kam im `esphome logs`-Client das Event `gedrueckt` jeweils **~0,13–0,21 s nach dem OFF** des
 Binärsensors an, nie beim ON. Beispiel:
@@ -86,9 +96,7 @@ Was bekannt ist:
   `VERBOSE`. Die Zeitstempel zeigen also, wann der Client die Meldung bekam, nicht zwingend, wann das Gerät sie auslöste.
 - `on_press` ist korrekt: der PressTrigger feuert bei `state = true`.
 
-**Prüfen:** nach der HA-Adoption, wann `event.klingel_*` in HA tatsächlich seinen Zeitstempel bekommt.
-
-**Ausweg, falls es sich bestätigt:** die Automation auf den Binärsensor **EIN** auslösen statt auf das Event.
+Geprüft wurde nach der HA-Adoption anhand der HA-Historie (Tabelle oben).
 
 ---
 

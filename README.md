@@ -65,10 +65,10 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 | Tischtest | **bestanden** mit 18650-Zelle: alle 3 Kanäle, jede Farbe nur ihre Etage, kein Übersprechen | 11.10. |
 | Zuordnung Ader ↔ Etage in der Abzweigdose | **offen** – Messung am 10.10. hat nicht stattgefunden | – |
 | Gong-Spannung (8 V oder 12 V) | **offen** | – |
-| Feste IP | **offen** | – |
-| ESPHome Builder | als `klingel.yaml` angelegt; Secrets `klingel_api_key` / `klingel_ap_password` fehlen dort noch (**offen**) | 11.10. |
-| Adoption in HA | **offen** | – |
-| Event `gedrueckt` erst nach dem OFF im Log | **offen**, ungeklärt – nach der HA-Adoption prüfen (siehe [Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | 11.10. |
+| Feste IP | ✔ im Router fest vergeben | 11.10. |
+| ESPHome Builder | als `klingel.yaml` angelegt, Secrets eingetragen, Gerät online ✔ | 11.10. |
+| Adoption in HA | ✔ eingebunden: `event.klingel_erdgeschoss` / `_etage_1` / `_etage_2`, `binary_sensor.klingel_*_gedruckt`, Status, WLAN-Signal, Laufzeit | 11.10. |
+| Event `gedrueckt` erst nach dem OFF im Log | ✔ geklärt: In HA kommt das Event **beim Drücken** an (Test 11.10.: Event 49,818 s, Binärsensor EIN 49,922 s, AUS 53,588 s). Die Verzögerung war nur die Ausgabe des Log-Clients. ([Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | 11.10. |
 | HA-Paket `ha/klingel.yaml` | **Entwurf**, YAML geparst, Sperrlogik in HA getestet, **noch nicht in HA angelegt** | 04./06.10. |
 | Gehäuse | **konstruiert** (`gehaeuse/`), gedruckt noch nicht bestätigt | 11.10. |
 
@@ -232,8 +232,8 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
    Ab dann Updates **per OTA** aus dem Builder.
 
 Stand 11.10.: Schritt 1 und 2 erledigt (Erstflash lokal per USB, API-Handshake mit echtem Schlüssel ok). Im Builder ist
-das Gerät als `klingel.yaml` angelegt, die Secrets `klingel_api_key` / `klingel_ap_password` fehlen dort noch. HA-Adoption
-und feste IP sind offen.
+das Gerät als `klingel.yaml` angelegt und die Secrets eingetragen. HA-Adoption und feste IP im Router sind erledigt
+(11.10.).
 
 > **Falle:** Nie einen Prüf-Build mit Dummy-Secrets flashen (am 06.10. beim Heizungs-ESP passiert: Hotspot-Passwort
 > und API-Schlüssel falsch). `esphome upload` übersetzt **nicht** neu und spielt blind den letzten Build auf – für echte
@@ -298,8 +298,8 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 | 8 | Schaltplan als PDF (PC817 + Gegendiode, mit Litzenfarben) | – | ✅ `plaene/klingel-schaltplan-farbig.pdf`, 11.10. |
 | 9 | Platine löten, Tischtest, Erstflash | Jens/Claude | ✅ 11.10. |
 | 9a | Feste IP vergeben | – | **offen** |
-| 9b | Builder-Secrets `klingel_api_key` / `klingel_ap_password` ergänzen, HA-Adoption | – | **offen** |
-| 9c | Event-Verzögerung prüfen (Event erst nach dem OFF, [Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | – | nach der HA-Adoption |
+| 9b | ✅ Builder-Secrets `klingel_api_key` / `klingel_ap_password` ergänzt, HA-Adoption | – | erledigt 11.10. |
+| 9c | ✅ Event-Verzögerung geprüft: in HA kommt das Event beim Drücken ([Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | – | erledigt 11.10. |
 | 10 | HA-Paket anlegen, Alexa (`alexa.yaml`, Routinen), Start-URL Panels E1/E2 prüfen | Claude/Jens | nach Adoption |
 | 11 | WLAN-Signal am Einbauort prüfen | – | nach Einbau |
 | 12 | Gehäuse konstruieren | – | ✅ 11.10. (`gehaeuse/`) |

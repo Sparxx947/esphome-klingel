@@ -1,4 +1,4 @@
-// Tuerklingel: Gehaeuse fuer Minilötplatine 45 x 39 (3 x PC817 + 1N4007 + 1 kΩ) und Wemos D1 mini
+// Tuerklingel: Gehaeuse fuer Minilötplatine 44,12 x 38,74 (3 x PC817 + 1N4007 + 1 kΩ) und Wemos D1 mini
 // Stand 11.10.2026 — Notiz project_ha_klingel.  Innenraum (Holznische neben der Abzweigdose) → PLA reicht.
 //
 // TEIL = "box" | "deckel" | "zusammen" | "schnitt" | "alle"
@@ -6,7 +6,7 @@
 // Aufteilung: links die Klingelseite (Lochraster, Kabel der Abzweigdose kommt LINKS rein),
 //             rechts die ESP-Seite (D1 mini, USB-Stecker kommt RECHTS rein) — wie auf der Platine getrennt.
 //
-// ANNAHMEN (abgeleitet, nicht gemessen) — ★ vor dem Druck nachmessen:
+// MASSE — alle am 11.10.2026 GEMESSEN (nichts mehr abgeleitet):
 //   lr_l x lr_b        Minilötplatine 44,12 x 38,74 — GEMESSEN 11.10.
 //   d1_l x d1_b        D1 mini 34,2 x 25,6 — GEMESSEN 11.10.
 //   usb_stecker        Umspritzung Micro-USB 10,8 x 7,2 — GEMESSEN 11.10.
@@ -16,11 +16,12 @@
 //   - Lochraster liegt NUR auf 4 Eckstützen (je ec x ec mm) → die 2 x 2 Eckloecher jeder Ecke NICHT belegen.
 //     Unterseite: Loetstellen frei, Beinchen auf ≤ 2 mm kürzen (Freiraum darunter = stuetz_h).
 //   - D1 mini MIT Stiftleisten, Dupont-Stecker zeigen NACH OBEN (Bauhoehe 25 mm, gemessen 11.10.). Er liegt nur mit dem
-//     ANTENNEN-Ende auf einem Sockel zwischen den Stiftleisten-Reihen (dort ist die Unterseite bauartbedingt frei); das USB-Ende trägt der
-//     eingesteckte Stecker in der Wandöffnung. Mit einem Tropfen Heißkleber auf dem Sockel fixieren.
+//     ANTENNEN-Ende auf einem Sockel zwischen den Stiftleisten-Reihen (dort ist die Unterseite bauartbedingt frei); am USB-Ende stehen zwei
+//     Stuetzen NEBEN der Buchse (Mitte frei). Mit einem Tropfen Heißkleber auf dem Sockel fixieren.
+//   - D1-Unterseite am USB-Ende frei (geprueft 11.10.).
 //   - Bauteilhöhe über dem Lochraster max. ~10 mm (PC817 ~4,6, 1N4007 liegend ~3, Widerstand ~2,5).
 // Druck: Box auf dem Boden, Deckel mit der Platte nach unten (TEIL="deckel" dreht ihn), 0,2 mm, ohne Stützen.
-// Deckel: 4 Blechschrauben 3 x 12 (oder 2,9 x 13) in die Eckdome.
+// Deckel: 4 Blechschrauben 3 x 12 (oder 2,9 x 13) in die vier Schraubsaeulen in den Innenecken.
 
 TEIL = "alle";
 $fn = 48;
@@ -112,7 +113,7 @@ module box() {
     // D1-Sockel unter dem Antennen-Ende + seitliche Fuehrungen neben (nicht unter) der Platine
     translate([d1_x0, d1_y0 + d1_b/2 - sockel_b/2, bo]) cube([sockel_l, sockel_b, d1_h]);
     for (y=[d1_y0 - 0.4 - 1.6, d1_y0 + d1_b + 0.4]) translate([d1_x0, y, bo]) cube([sockel_l, 1.6, d1_h + d1_t + 1.5]);
-    // USB-Ende (11.10.: lag sonst schief): zwei Stuetzen NEBEN der Buchse, Mitte frei (Buchse kann unten sitzen),
+    // USB-Ende (11.10.: D1 lag sonst schief): zwei Stuetzen NEBEN der Buchse, Mitte frei (Buchse kann unten sitzen),
     // aussen frei fuer die Loetstellen der Stiftleisten (Reihen bei ±11,43 mm von der Mitte).
     for (sy=[-1,1]) translate([il - 1 - usb_stuetze_l, d1_y0 + d1_b/2 + (sy>0 ? usb_frei/2 : -usb_frei/2 - usb_stuetze_b), bo])
         cube([usb_stuetze_l, usb_stuetze_b, d1_h]);
