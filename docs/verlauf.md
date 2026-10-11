@@ -24,6 +24,7 @@
 | 11.10. | Erstflash | Per USB lokal mit echten Secrets (ESPHome 2026.9.1): RAM 39,0 %, Flash 40,3 %. WLAN verbunden, API-Handshake mit echtem Schlüssel ok. Im ESPHome Builder als `klingel.yaml` angelegt; Builder-Secrets, HA-Adoption und feste IP offen. |
 | 11.10. | Tischtest | Ein 18650-Shield (Powerbank-Platine) als Quelle lieferte **keine** Erkennung (vermutlich schaltet es bei ~8 mA Last den Ausgang nicht ein, nicht weiter untersucht). Mit einer nackten 18650-Zelle (Minus an grau, Plus 2–3 s an die Farbe) **bestanden**: blau → nur „Etage 2“, gelb → nur „Erdgeschoss“, grün → nur „Etage 1“, je mehrfach, jedes Mal Event `gedrueckt`, kein Übersprechen. |
 | 11.10. | Auffälligkeit | Im `esphome logs`-Client kam das Event `gedrueckt` jeweils ~0,13–0,21 s **nach** dem OFF des Binärsensors an, nie beim ON (Beispiel: ON 44,26 s, OFF 49,84 s, Event 50,05 s). Ungeklärt, nach der HA-Adoption prüfen (siehe [Fehlersuche Nr. 16](fehlersuche.md#16-event-erscheint-erst-nach-dem-off)). |
+| 11.10. | HA-Adoption | Builder-Secrets eingetragen, ESPHome-Integration in HA eingebunden (Entitäten `event.klingel_erdgeschoss`/`_etage_1`/`_etage_2`, `binary_sensor.klingel_*_gedruckt`), feste IP im Router. Event-Zeitpunkt in HA geprüft: Event 49,818 s vor Binärsensor-EIN 49,922 s (AUS 53,588 s) → die Auffälligkeit im Log-Client ist **kein Fehler**. Gehäuse im Druck. |
 
 ## Verworfene Varianten
 

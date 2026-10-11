@@ -65,10 +65,10 @@ press. It therefore comes **before** `delayed_on: 230ms` – the reverse order w
 | Bench test | **passed** with an 18650 cell: all 3 channels, each colour only its floor, no crosstalk | 11.10. |
 | Mapping wire ↔ floor in the junction box | **open** – the measurement on 10.10. did not take place | – |
 | Chime voltage (8 V or 12 V) | **open** | – |
-| Static IP | **open** | – |
-| ESPHome Builder | created as `klingel.yaml`; the secrets `klingel_api_key` / `klingel_ap_password` are still missing there (**open**) | 11.10. |
-| Adoption in HA | **open** | – |
-| Event `gedrueckt` only after the OFF in the log | **open**, unexplained – check after HA adoption (see [Troubleshooting no. 16](docs/fehlersuche.en.md#16-event-appears-only-after-the-off)) | 11.10. |
+| Static IP | ✔ reserved in the router | 11.10. |
+| ESPHome Builder | created as `klingel.yaml`, secrets added, device online ✔ | 11.10. |
+| Adoption in HA | ✔ adopted: `event.klingel_erdgeschoss` / `_etage_1` / `_etage_2`, `binary_sensor.klingel_*_gedruckt`, status, Wi-Fi signal, uptime | 11.10. |
+| Event `gedrueckt` only after the OFF in the log | ✔ resolved: in HA the event arrives **on press** (test 11.10.: event 49.818 s, binary sensor ON 49.922 s, OFF 53.588 s). The delay was only the log client's output. ([Troubleshooting no. 16](docs/fehlersuche.en.md#16-event-appears-only-after-the-off)) | 11.10. |
 | HA package `ha/klingel.yaml` | **draft**, YAML parsed, lockout logic tested in HA, **not yet created in HA** | 04./06.10. |
 | Enclosure | **designed** (`gehaeuse/`), printing not yet confirmed | 11.10. |
 
@@ -231,8 +231,8 @@ File: [`firmware/klingel.yaml`](firmware/klingel.yaml)
    From then on, updates **via OTA** from the Builder.
 
 As of 11.10.: steps 1 and 2 done (first flash locally via USB, API handshake with the real key ok). In the Builder the
-device is created as `klingel.yaml`; the secrets `klingel_api_key` / `klingel_ap_password` are still missing there. HA
-adoption and static IP are open.
+device is created as `klingel.yaml` and the secrets are added. HA adoption and the static IP in the router are done
+(11.10.).
 
 > **Pitfall:** Never flash a test build with dummy secrets (happened on 06.10. with the heating ESP: hotspot password
 > and API key wrong). `esphome upload` does **not** recompile and blindly uploads the last build – for real firmware
@@ -299,8 +299,8 @@ Check before installation: start URL of the panels on floors 1/2 (the EZpad on t
 | 8 | Schematic as PDF (PC817 + reverse diode, with wire colours) | – | ✅ `plaene/klingel-schaltplan-farbig.pdf`, 11.10. |
 | 9 | Solder board, bench test, first flash | Jens/Claude | ✅ 11.10. |
 | 9a | Assign static IP | – | **open** |
-| 9b | Add Builder secrets `klingel_api_key` / `klingel_ap_password`, HA adoption | – | **open** |
-| 9c | Check event delay (event only after the OFF, [troubleshooting no. 16](docs/fehlersuche.en.md#16-event-appears-only-after-the-off)) | – | after HA adoption |
+| 9b | ✅ Builder secrets `klingel_api_key` / `klingel_ap_password` added, HA adoption | – | done 11.10. |
+| 9c | ✅ Event delay checked: in HA the event arrives on press ([troubleshooting no. 16](docs/fehlersuche.en.md#16-event-appears-only-after-the-off)) | – | done 11.10. |
 | 10 | Create HA package, Alexa (`alexa.yaml`, routines), check start URL of panels F1/F2 | Claude/Jens | after adoption |
 | 11 | Check Wi-Fi signal at the installation site | – | after installation |
 | 12 | Design enclosure | – | ✅ 11.10. (`gehaeuse/`) |

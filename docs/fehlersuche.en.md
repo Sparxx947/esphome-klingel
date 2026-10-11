@@ -22,7 +22,7 @@ Labels: **verified** = actually occurred in the project notes/other ESP projects
 | 13 | D1 doesn't boot / hangs at startup | input placed on D3/D4/D8 (boot pins) | use only D5/D6/D7 | derived (pin choice 04.10.) |
 | 14 | Events delayed / device often `unavailable` | weak Wi-Fi at the distribution board | check RSSI, change position, if necessary D1 mini Pro with external antenna | derived |
 | 15 | Push doesn't reach one person | wrong `notify` service / app logged out | check services in HA; `continue_on_error` ensures the remaining actions keep running | derived |
-| 16 | Event `gedrueckt` appears only after the OFF of the binary sensor | **unexplained** (see below) | check after HA adoption; workaround: trigger the automation on the binary sensor ON instead of the event | verified (log 11.10.), **open** |
+| 16 | Event `gedrueckt` appears only after the OFF of the binary sensor | only the log client's output (see below) | nothing – in HA the event arrives on press | **resolved** 11.10. |
 | 17 | Channel doesn't respond, diode test shows "OL" or wrong values | the mini solder board has **individual pads without tracks** – connection not made (on 11.10. reverse diode ↔ pin 1/pin 2, resistor ↔ pin 1, pin 2 ↔ return conductor were missing) | make all connections on the solder side with wire/solder bridges, diode test per channel (1.08 V / 0.60 V) | verified (11.10.) |
 | 18 | Bench test: no detection with an 18650 shield as source | the shield (power-bank board) presumably does not switch its output on at ~8 mA load (not investigated further) | use a bare 18650 cell or a lab power supply | verified (11.10.), cause suspected |
 
@@ -72,7 +72,17 @@ The bench test with DC does **not** reveal the original problem – only the tes
 
 ## 16. Event appears only after the OFF
 
-**Status: open, not explained.**
+**Status: resolved (11.10.) – not a fault.** In Home Assistant the event arrives on press:
+
+| Entity | Time (16:35) |
+|---|---|
+| `event.klingel_erdgeschoss` → `gedrueckt` | 49.818 s |
+| `binary_sensor.klingel_erdgeschoss_gedruckt` ON | 49.922 s |
+| `binary_sensor.klingel_erdgeschoss_gedruckt` OFF | 53.588 s |
+
+The delay only occurred in the output of the `esphome logs` client. The automation can trigger on the event.
+
+Original observation:
 
 During the bench test on 11.10., the event `gedrueckt` arrived in the `esphome logs` client **~0.13–0.21 s after the OFF**
 of the binary sensor each time, never at the ON. Example:
@@ -90,9 +100,7 @@ What is known:
   fired it.
 - `on_press` is correct: the PressTrigger fires on `state = true`.
 
-**Check:** after HA adoption, when `event.klingel_*` actually gets its timestamp in HA.
-
-**Workaround if confirmed:** trigger the automation on the binary sensor **ON** instead of the event.
+Checked after HA adoption using the HA history (table above).
 
 ---
 

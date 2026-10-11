@@ -24,6 +24,7 @@
 | 11.10. | First flash | Locally via USB with the real secrets (ESPHome 2026.9.1): RAM 39.0 %, flash 40.3 %. Wi-Fi connected, API handshake with the real key ok. Created in the ESPHome Builder as `klingel.yaml`; Builder secrets, HA adoption and static IP open. |
 | 11.10. | Bench test | An 18650 shield (power-bank board) as source gave **no** detection (presumably it does not switch its output on at ~8 mA load; not investigated further). With a bare 18650 cell (minus to grey, plus for 2–3 s to the colour) **passed**: blue → only "Etage 2", yellow → only "Erdgeschoss", green → only "Etage 1", several times each, event `gedrueckt` every time, no crosstalk. |
 | 11.10. | Anomaly | In the `esphome logs` client the event `gedrueckt` arrived ~0.13–0.21 s **after** the OFF of the binary sensor each time, never at the ON (example: ON 44.26 s, OFF 49.84 s, event 50.05 s). Unexplained, check after HA adoption (see [troubleshooting no. 16](fehlersuche.en.md#16-event-appears-only-after-the-off)). |
+| 11.10. | HA adoption | Builder secrets added, ESPHome integration adopted in HA (entities `event.klingel_erdgeschoss`/`_etage_1`/`_etage_2`, `binary_sensor.klingel_*_gedruckt`), static IP in the router. Event timing checked in HA: event 49.818 s before binary sensor ON 49.922 s (OFF 53.588 s) → the anomaly in the log client is **not a fault**. Enclosure printing. |
 
 ## Discarded variants
 
