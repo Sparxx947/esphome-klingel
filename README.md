@@ -37,33 +37,40 @@ sein Transistor zieht den Eingang des D1 mini (interner Pull-up) gegen GND.
 
 Der PC817 hat nur **eine** LED, die in Sperrrichtung nur etwa 6 V verträgt – der Trafo liefert in der Spitze bis ~17 V.
 Deshalb liegt eine **1N4007 antiparallel** zur LED und fängt die negative Halbwelle ab. Dadurch kommen am Eingang nur
-**50 Pulse pro Sekunde** an; der Filter `delayed_off: 200ms` macht daraus einen durchgehenden Tastendruck.
-(Siehe aber den wichtigen Hinweis zur **Filter-Reihenfolge** unter [Fehlersuche](docs/fehlersuche.md#1-gong-klingelt-aber-kein-ereignis-in-ha).)
+**50 Pulse pro Sekunde** an; der Filter `delayed_off: 200ms` macht daraus einen durchgehenden Tastendruck. Er steht
+deshalb **vor** `delayed_on: 230ms` – die umgekehrte Reihenfolge hätte jeden Druck verworfen (behoben am 11.10. vor dem
+Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-kein-ereignis-in-ha)).
 
 > Ursprünglich war der **PC814** geplant (zwei antiparallele LEDs, für Wechselspannung gebaut). Er war bei Amazon.de
-> erst ab 15.10.–18.11. lieferbar, daher PC817 + Gegendiode. Die Kommentare im Kopf von `firmware/klingel.yaml`
-> beschreiben noch den PC814-/Trafo-Stand vom 04.10. – der **Code selbst** passt zu beiden Varianten.
+> erst ab 15.10.–18.11. lieferbar, daher PC817 + Gegendiode. Die Kopfkommentare in `firmware/klingel.yaml` beschreiben
+> seit dem 11.10. den PC817-/USB-Stand.
 
 ---
 
-## Status (Stand 08.10.2026)
+## Status (Stand 11.10.2026)
 
 | Bereich | Stand | Datum |
 |---|---|---|
-| Firmware `klingel.yaml` (3 Taster, Events, Filter) | **fertig**, mit ESPHome 2026.9.1 kompiliert (RAM 39,0 %, Flash 40,3 %) | 04.10. |
+| Firmware `klingel.yaml` (3 Taster, Events, Filter) | **fertig**, Filter-Reihenfolge korrigiert (`delayed_off: 200ms` vor `delayed_on: 230ms`) | 04.10. / 11.10. |
+| Erstflash | **erledigt** per USB mit echten Secrets (ESPHome 2026.9.1, RAM 39,0 %, Flash 40,3 %); WLAN verbunden, API-Handshake mit echtem Schlüssel ok | 11.10. |
 | Etagen-Namen / Entitäten | **fertig** (Erdgeschoss / Etage 1 / Etage 2) | 04.10. |
 | Empfänger je Etage | **fertig** (EG → Bewohner EG, Etage 1/2 → Bewohner Etage 1/2) | 06.10. |
 | Versorgungskonzept | **entschieden**: USB-Netzteil aus der Verteiler-Steckdose statt Trafo | 06.10. |
 | Abgriffpunkt | **entschieden**: Abzweigdose oben links (nur Klingeladern, von Jens bestätigt) | 06.10. |
-| Schaltplan PC817 + Gegendiode | **fertig** als SVG (`plaene/klingel_plan.svg`), PDF fehlt noch | 06.10. |
+| Schaltplan PC817 + Gegendiode | **fertig** als SVG (`plaene/klingel_plan.svg`) und farbiger Druckplan mit Litzenfarben (`plaene/klingel-schaltplan-farbig.pdf`) | 06.10. / 11.10. |
 | PC817C, Diodensortiment | **geliefert** | 07.10. (von Jens am 08.10. bestätigt) |
 | Minilötplatinen 45 × 39 mm | **geliefert** | 09.10. |
-| 1 kΩ-Widerstände | **offen** – unklar, ob im vorhandenen Sortiment | – |
-| Zuordnung Ader ↔ Etage in der Abzweigdose | **offen** – Messung geplant | Sa 10.10. (verschoben vom 09.10.) |
+| 1 kΩ-Widerstände | **vorhanden und verbaut** | 11.10. |
+| Platine (3 Kanäle) | **gelötet und geprüft** (Diodentest je Kanal, Trennung Klingel-/ESP-Seite) – Einzelpad-Platine, fehlende Verbindungen nachgelötet | 11.10. |
+| Tischtest | **bestanden** mit 18650-Zelle: alle 3 Kanäle, jede Farbe nur ihre Etage, kein Übersprechen | 11.10. |
+| Zuordnung Ader ↔ Etage in der Abzweigdose | **offen** – Messung am 10.10. hat nicht stattgefunden | – |
 | Gong-Spannung (8 V oder 12 V) | **offen** | – |
-| Platine löten, Erstflash, Adoption in HA/Builder, feste IP | **offen** | – |
+| Feste IP | **offen** | – |
+| ESPHome Builder | als `klingel.yaml` angelegt; Secrets `klingel_api_key` / `klingel_ap_password` fehlen dort noch (**offen**) | 11.10. |
+| Adoption in HA | **offen** | – |
+| Event `gedrueckt` erst nach dem OFF im Log | **offen**, ungeklärt – nach der HA-Adoption prüfen (siehe [Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | 11.10. |
 | HA-Paket `ha/klingel.yaml` | **Entwurf**, YAML geparst, Sperrlogik in HA getestet, **noch nicht in HA angelegt** | 04./06.10. |
-| Gehäuse | **offen** – noch nicht konstruiert | – |
+| Gehäuse | **konstruiert** (`gehaeuse/`), gedruckt noch nicht bestätigt | 11.10. |
 
 ---
 
@@ -74,13 +81,13 @@ Deshalb liegt eine **1N4007 antiparallel** zur LED und fängt die negative Halbw
 | Mikrocontroller | 1 | Wemos D1 mini V3.0.0 (ESP8266), „D1 #2“ | Bestand (4 × vorhanden) | vorhanden |
 | Optokoppler | 3 (+ Reserve) | PC817C, DIP-4, 50 Stück (ALLECIN) | Amazon.de, **B0CBKK6T3D**, 7,99 € | geliefert 07.10. |
 | Gegendiode | 3 | 1N4007 (alternativ 1N5819 – Erholzeit bei 50 Hz egal) aus Diodensortiment (BOJACK) | Amazon.de, **B07YK3XMQQ**, 10,99 € (gemeinsam mit Projekt Tankmessung) | geliefert 07.10. |
-| Vorwiderstand | 3 | 1 kΩ, 0,25 W reicht (~10 mA, ~0,12 W) | Widerstandssortiment (AZ-Delivery) – **ob 1 kΩ enthalten ist, prüft Jens**; belegt sind dort nur 220 Ω und 10 kΩ | **offen** |
-| Lochraster | 1 | Minilötplatine 45 × 39 mm, 5 Stück | Amazon.de, **B073FVX29X**, 5,19 € | geliefert 09.10. |
+| Vorwiderstand | 3 | 1 kΩ, 0,25 W reicht (~10 mA, ~0,12 W) | Widerstandssortiment (AZ-Delivery) | vorhanden, verbaut 11.10. |
+| Lochraster | 1 | Minilötplatine 45 × 39 mm (gemessen 44,12 × 38,74), 5 Stück – **einzelne Lötpunkte ohne Leiterbahnen** | Amazon.de, **B073FVX29X**, 5,19 € | geliefert 09.10., gelötet 11.10. |
 | Netzteil | 1 | USB-Netzteil 5 V (Typ nicht festgelegt) für die Schuko-Steckdose im linken Verteiler | – | **ungeklärt** (Bestand?) |
 | USB-Kabel | 1 | passend zum D1 mini, Länge Steckdose → Abzweigdose | – | **ungeklärt** |
-| Leitungen Abzweigdose → Platine | 4 Adern (3 Etagenadern + Rückleiter) | dünne Litze / Klingeldraht; Verbindung in der Dose (Lüster/WAGO) | – | **nicht festgelegt** |
-| Verbindungen Platine → D1 | 4 (D5, D6, D7, G) | Jumperkabel (ELEGOO-Set M2M/F2M/F2F) oder direkt gelötet | Bestand | vorhanden |
-| Gehäuse | 1 | noch nicht konstruiert (PETG/PLA aus Bestand) | – | offen |
+| Leitungen Abzweigdose → Platine | 4 Adern (3 Etagenadern + Rückleiter) | Einzellitzen Ø 1,38 mm: grau = Gong-Rückleiter, gelb = Erdgeschoss, grün = Etage 1, blau = Etage 2; Verbindung in der Dose (Lüster/WAGO) | – | Farben festgelegt 11.10.; Klemmung in der Dose **nicht festgelegt** |
+| Verbindungen Platine → D1 | 4 (D5, D6, D7, G) | gelb → D5, grün → D6, blau → D7, schwarz → G (Jumperkabel aus dem ELEGOO-Set M2M/F2M/F2F oder direkt gelötet) | Bestand | vorhanden |
+| Gehäuse | 1 | Box + Deckel, `gehaeuse/klingel_box.stl` + `gehaeuse/klingel_deckel.stl` (PLA) + 4 Blechschrauben 3 × 12, Wandmontage 4 × Spax 4 | Eigendruck | konstruiert 11.10., Druck nicht bestätigt |
 | Werkzeug | – | Multimeter (geliehen; eigenes UNI-T UT139C bestellt), Lötkolben | Bestand / bestellt | vorhanden |
 | *optional:* Relaismodul | 1 | für „Gong stumm“ an D1 (GPIO5), Öffner-Kontakt | – | nur Idee, auskommentiert |
 
@@ -93,7 +100,8 @@ Holznische, kein Metallkasten).
 ## Pinbelegung und Verdrahtung
 
 Schaltplan: [`plaene/klingel_plan.svg`](plaene/klingel_plan.svg) (erzeugt von `plaene/klingel_plan.py`).
-Eine PDF-Fassung liegt **noch nicht** im Repo (siehe [Offene Punkte](#offene-punkte--nächste-schritte--termine)).
+Druckfassung mit Litzenfarben (A4 quer): [`plaene/klingel-schaltplan-farbig.pdf`](plaene/klingel-schaltplan-farbig.pdf)
+(erzeugt von `plaene/klingel_plan_druck.py`).
 
 ### Je Etage (3 × identisch)
 
@@ -105,6 +113,21 @@ Eine PDF-Fassung liegt **noch nicht** im Repo (siehe [Offene Punkte](#offene-pun
 | 1N4007 **Anode** | – | PC817 Pin 2 | |
 | PC817 **Pin 4** (Kollektor) | – | D1 mini Dx (siehe unten) | interner Pull-up, kein externer Widerstand |
 | PC817 **Pin 3** (Emitter) | – | D1 mini **G** | alle drei Emitter gemeinsam |
+
+### Litzenfarben (Stand 11.10.)
+
+| Seite | Farbe | Bedeutung |
+|---|---|---|
+| Klingelseite | grau | Gong-Rückleiter |
+| Klingelseite | gelb | Erdgeschoss |
+| Klingelseite | grün | Etage 1 |
+| Klingelseite | blau | Etage 2 |
+| ESP-Seite | gelb | → D5 (Erdgeschoss) |
+| ESP-Seite | grün | → D6 (Etage 1) |
+| ESP-Seite | blau | → D7 (Etage 2) |
+| ESP-Seite | schwarz | → G |
+
+Etage = gleiche Farbe auf beiden Seiten. **Kein Rot** – das bleibt für +5 V.
 
 ### D1 mini
 
@@ -124,19 +147,44 @@ Welche Ader in der Abzweigdose welche Etage ist, ist **noch nicht bekannt** → 
 
 ## Gehäuse
 
-**Für die Klingel gibt es noch kein Gehäuse** (kein `gehaeuse/`-Ordner, keine SCAD/STL). Der frühere Plan eines
-Hutschienengehäuses im Verteiler ist mit dem Abgriff an der Abzweigdose hinfällig. Was beim Konstruieren gelten soll –
-übernommen aus den anderen ESP-Projekten:
+Quelle: [`gehaeuse/klingel-gehaeuse.scad`](gehaeuse/klingel-gehaeuse.scad) (OpenSCAD, parametrisch). In OpenSCAD
+`TEIL = "box"` bzw. `"deckel"` setzen, F6, als STL exportieren. Fertige Dateien:
+[`gehaeuse/klingel_box.stl`](gehaeuse/klingel_box.stl) und [`gehaeuse/klingel_deckel.stl`](gehaeuse/klingel_deckel.stl).
 
-| Punkt | Vorgabe / Lehre |
+**Stand 11.10.: konstruiert, gedruckt noch nicht bestätigt.** Ein Testdruck einer früheren Fassung zeigte: das
+Lochraster passt.
+
+### Gemessene Maße (Grundlage)
+
+| Teil | Maß |
 |---|---|
-| Konstruktion | OpenSCAD, parametrisch (Maße als Variablen oben, Teil per `TEIL = "…"`) |
-| Material | PLA genügt (Innenraum, keine Wärmequelle); PETG ist im Bestand |
-| Druck | 0,2 mm Schicht, ohne Stützen (wie die übrigen Gehäuse) |
-| Kollisionen | **Vor dem STL-Export prüfen**: Platinen nicht auf durchgehende Auflagen legen, sondern auf Stützen **zwischen** den Stiftleisten (Stiftleisten laufen über die ganze Platinenlänge); Magnettaschen nicht durch den Boden. |
-| Bestückung | D1 mini + Minilötplatine 45 × 39 mm, Kabel für Klingeladern und USB getrennt herausführen |
+| Lochraster (Minilötplatine) | 44,12 × 38,74 mm |
+| D1 mini | 34,2 × 25,6 mm |
+| D1 mit Stiftleisten + Dupont-Steckern nach oben | 25 mm hoch |
+| Micro-USB-Stecker (Umspritzung) | 10,8 × 7,2 mm |
+| Litzen zur Abzweigdose | 4 × Ø 1,38 mm |
 
-Maße von D1 mini und fertiger Lochrasterplatine stehen noch nicht fest – erst nach dem Löten messen.
+### Aufbau
+
+| Punkt | Ausführung |
+|---|---|
+| Box | außen 102,5 × 44,7 × 37 mm (mit Laschen 67,7 mm breit), Wand 2,2 mm, Innenhöhe 35 mm |
+| Deckel | 2 mm mit Lippe und 4 Niederhaltern (29,7 mm) auf die Lochraster-Ecken |
+| Lochraster | links auf 4 Eckstützen 5,5 × 5,5 mm (die Platine hat große Befestigungslöcher in den Ecken) – **Ecken frei lassen, auch von Heißkleber** |
+| D1 mini | rechts auf einem 6-mm-Sockel unter dem Antennen-Ende + 2 Stützen 4 × 4,5 mm neben der USB-Buchse (Mitte 9,5 mm frei) |
+| Litzen | links durch Ø 4,5 mm, Kabelbinder-Zugentlastung an 2 Pfosten |
+| USB | rechts durch 12,5 × 11,6 mm (deckt die Buchse, ob sie oben oder unten auf der Platine sitzt) |
+| Verschraubung | 4 Schraubsäulen innen in den Ecken, Deckel mit 4 Blechschrauben 3 × 12 |
+| Wandmontage | 4 Laschen für Spax 4 |
+| Druck | PLA, 0,2 mm, ohne Stützen; Deckel mit der Platte nach unten (die STL liegt schon so) |
+| Prüfung | per OpenSCAD-Schnittmengen: Durchbrüche frei, Deckel ohne Kollision, Platinen nur auflagernd |
+
+### Lehren
+
+| Punkt | Lehre |
+|---|---|
+| Wandstärke | In einer ersten Fassung endeten die Durchbrüche **blind**: `hull()` mit außen liegenden Eckdomen hatte alle Wände auf 6,5 mm verdickt. Jetzt sitzen die Schraubsäulen innen. |
+| Kollisionen | **Vor dem STL-Export prüfen**: Platinen nicht auf durchgehende Auflagen legen, sondern auf Stützen **zwischen** den Stiftleisten (Stiftleisten laufen über die ganze Platinenlänge). |
 
 ---
 
@@ -149,9 +197,9 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | Gerätename / Hostname | `klingel` (→ `klingel.local`) |
 | Friendly Name | `Klingel` |
 | Board | `esp8266` / `d1_mini` |
-| IP | **noch keine** – nach dem Erstflash im Router fest vergeben (wie bei den anderen ESPs) |
+| IP | **noch keine** – im Router fest vergeben (wie bei den anderen ESPs); nach dem Erstflash vom 11.10. noch offen |
 | `substitutions` | `taster_1: Erdgeschoss`, `taster_2: Etage 1`, `taster_3: Etage 2` |
-| Filter je Eingang | `delayed_on: 30ms`, `delayed_off: 200ms` (Anker `&klingelfilter`) – **Reihenfolge prüfen**, siehe Fehlersuche |
+| Filter je Eingang | `delayed_off: 200ms`, **dann** `delayed_on: 230ms` (Anker `&klingelfilter`) – Reihenfolge seit 11.10. korrigiert, siehe Fehlersuche Nr. 1 |
 | Logger | `INFO` |
 | API | verschlüsselt (`!secret klingel_api_key`) |
 | OTA | `platform: esphome` |
@@ -183,6 +231,10 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 4. Im **ESPHome Builder**: Secrets ergänzen, „New device“ → überspringen → YAML einfügen, **nicht** installieren.
    Ab dann Updates **per OTA** aus dem Builder.
 
+Stand 11.10.: Schritt 1 und 2 erledigt (Erstflash lokal per USB, API-Handshake mit echtem Schlüssel ok). Im Builder ist
+das Gerät als `klingel.yaml` angelegt, die Secrets `klingel_api_key` / `klingel_ap_password` fehlen dort noch. HA-Adoption
+und feste IP sind offen.
+
 > **Falle:** Nie einen Prüf-Build mit Dummy-Secrets flashen (am 06.10. beim Heizungs-ESP passiert: Hotspot-Passwort
 > und API-Schlüssel falsch). `esphome upload` übersetzt **nicht** neu und spielt blind den letzten Build auf – für echte
 > Firmware immer `esphome run`.
@@ -198,8 +250,9 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | [docs/fehlersuche.md](docs/fehlersuche.md) | bekannte und absehbare Fehlerbilder mit Ursache und Lösung |
 | [docs/verlauf.md](docs/verlauf.md) | Entscheidungen und verworfene Varianten (PC814, Trafo-Versorgung, Dioden-Abgriff) |
 
-**Kurzfassung der Reihenfolge:** Teile prüfen → Adern messen (Sa 10.10.) → Platine löten → Tischtest → Erstflash →
-HA/Builder/feste IP → Einbau an der Abzweigdose → je Etage einmal klingeln → HA-Paket anlegen → Alexa-Routinen.
+**Kurzfassung der Reihenfolge:** Teile prüfen ✅ → Platine löten ✅ → Erstflash ✅ → Tischtest ✅ → Adern messen →
+HA/Builder/feste IP → Gehäuse drucken → Einbau an der Abzweigdose → je Etage einmal klingeln → HA-Paket anlegen →
+Alexa-Routinen.
 
 **Sicherheit:** Vor dem Öffnen von Klemmen die Sicherung des Klingeltrafos ausschalten. In der Abzweigdose liegen laut
 Sichtprüfung (Jens, 06.10.) nur Klingeladern. Die 230-V-Seite des Trafos gehört dem Elektriker.
@@ -235,18 +288,23 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 
 | # | Punkt | Wer | Termin |
 |---|---|---|---|
-| 1 | Adern in der Abzweigdose messen und Etagen zuordnen (Multimeter V~) | Jens | **Sa 10.10.2026** (verschoben vom 09.10.) |
+| 1 | Adern in der Abzweigdose messen und Etagen zuordnen (Multimeter V~) | Jens | **offen** (am 10.10. nicht erfolgt) |
 | 2 | Kreppband-Beschriftung in der Dose lesen (Gegenprobe zur Messung) | Jens | mit 1 |
 | 3 | Gong-Spannung feststellen: 8 V (Klemmen 2–4) oder 12 V (2–8) | Jens | mit 1 |
-| 4 | 1 kΩ im Widerstandssortiment vorhanden? Sonst nachkaufen | Jens | vor dem Löten |
+| 4 | 1 kΩ-Widerstände | – | ✅ vorhanden, verbaut 11.10. |
 | 5 | Minilötplatinen-Lieferung | – | ✅ geliefert 09.10. |
-| 6 | **Filter-Reihenfolge** in `klingel.yaml` prüfen/umstellen (siehe Fehlersuche Nr. 1) – ungetestet | Claude/Jens | vor dem Erstflash |
-| 7 | Kopfkommentare in `klingel.yaml` auf PC817 + USB-Versorgung aktualisieren (Doku, kein Funktionsfehler) | – | beim nächsten Firmware-Update |
-| 8 | Schaltplan als PDF erzeugen/drucken (PC817 + Gegendiode) | Claude | nach Aderzuordnung |
-| 9 | Platine löten, Tischtest, Erstflash, HA, feste IP, Builder | Jens/Claude | nach 1–5 |
+| 6 | **Filter-Reihenfolge** in `klingel.yaml` (siehe Fehlersuche Nr. 1) | – | ✅ korrigiert 11.10., vor dem Erstflash |
+| 7 | Kopfkommentare in `klingel.yaml` auf PC817 + USB-Versorgung aktualisieren | – | ✅ 11.10. |
+| 8 | Schaltplan als PDF (PC817 + Gegendiode, mit Litzenfarben) | – | ✅ `plaene/klingel-schaltplan-farbig.pdf`, 11.10. |
+| 9 | Platine löten, Tischtest, Erstflash | Jens/Claude | ✅ 11.10. |
+| 9a | Feste IP vergeben | – | **offen** |
+| 9b | Builder-Secrets `klingel_api_key` / `klingel_ap_password` ergänzen, HA-Adoption | – | **offen** |
+| 9c | Event-Verzögerung prüfen (Event erst nach dem OFF, [Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | – | nach der HA-Adoption |
 | 10 | HA-Paket anlegen, Alexa (`alexa.yaml`, Routinen), Start-URL Panels E1/E2 prüfen | Claude/Jens | nach Adoption |
 | 11 | WLAN-Signal am Einbauort prüfen | – | nach Einbau |
-| 12 | Gehäuse konstruieren und drucken | Claude | nach dem Löten (Maße) |
+| 12 | Gehäuse konstruieren | – | ✅ 11.10. (`gehaeuse/`) |
+| 12a | Gehäuse drucken | – | **offen** |
+| 12b | Einbau an der Abzweigdose und Abnahmetest ([einbau.md](docs/einbau.md) C/D) | – | nach 1–3 und 12a |
 | 13 | optional: Relais „Gong stumm“ | – | später, nicht beauftragt |
 
 ---
@@ -265,4 +323,9 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 | `ha/klingel.yaml` | HA-Paket-Entwurf (Trigger-Templates für Alexa, Push-/Panel-Automation) |
 | `plaene/klingel_plan.svg` | Schaltplan je Etage: 1 kΩ, PC817, 1N4007, Ausgänge D5/D6/D7 |
 | `plaene/klingel_plan.py` | erzeugt den Schaltplan (matplotlib); schreibt nach `doku/klingel_plan.svg` relativ zum Arbeitsverzeichnis – Pfad bei Bedarf anpassen |
+| `plaene/klingel-schaltplan-farbig.pdf` | Druckblatt A4 quer: Schaltplan mit Litzenfarben, Farbschema und Kennfarben der Bauteile |
+| `plaene/klingel_plan_druck.py` | erzeugt das farbige PDF; liest `klingel_plan.py` aus dem Arbeitsverzeichnis (also in `plaene/` ausführen) |
+| `gehaeuse/klingel-gehaeuse.scad` | OpenSCAD-Quelle des Gehäuses (`TEIL = "box"` / `"deckel"` / `"zusammen"` / `"schnitt"` / `"alle"`) |
+| `gehaeuse/klingel_box.stl` | Box, druckfertig |
+| `gehaeuse/klingel_deckel.stl` | Deckel, druckfertig (liegt mit der Platte nach unten) |
 | `.gitignore` | schließt echte Secrets, `.esphome/`, Sicherungskopien aus |

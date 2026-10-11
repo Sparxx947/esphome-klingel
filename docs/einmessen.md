@@ -13,7 +13,9 @@ Notizen bzw. wurden noch nicht am Gerät nachvollzogen.
 
 ## 1. Adern zuordnen
 
-**Termin: Fr 09.10.2026 18:30.**
+**Termin: offen.** Geplant waren Fr 09.10. und Sa 10.10. – die Messung hat noch nicht stattgefunden (Stand 11.10.).
+Für die Litzen zur Platine sind die Farben schon festgelegt: grau = Gong-Rückleiter, gelb = Erdgeschoss,
+grün = Etage 1, blau = Etage 2.
 
 Ausgangslage (Fotos 06.10.): In der Abzweigdose oben links über dem linken Verteiler laufen mehrere Fernmeldeleitungen
 zusammen (Adern rot, schwarz, gelb, weiß, blau, lila, grün, grau, schwarz-weiß und schwarz-orange geringelt). Unten
@@ -103,17 +105,38 @@ versorgt.
 
 *(Die Tabelle ist ein Vorschlag aus dem Schaltplan abgeleitet; Werte sind typische Datenblattwerte.)*
 
+**Gemessen am 11.10.** nach dem Löten, alle 3 Kanäle gleich: + an Pin 1 → Pin 2 = **1,08 V** (LED), + an Pin 2 → Pin 1 =
+**0,60 V** (1N4007); Klingelseite ↔ ESP-Seite **kein Durchgang**. Zeigt ein Kanal „OL“, fehlt auf der Einzelpad-Platine
+vermutlich eine Verbindung (siehe [einbau.md A](einbau.md#a-platine-aufbauen)).
+
 ---
 
-## 5. Tischtest vor dem Einbau *(Vorschlag)*
+## 5. Tischtest vor dem Einbau
 
-Ohne Klingeltrafo lässt sich jeder Kanal mit Gleichspannung testen:
+Ohne Klingeltrafo lässt sich jeder Kanal mit Gleichspannung testen.
 
-1. D1 mini per USB versorgen, Firmware geflasht, Log offen (ESPHome Builder → Logs oder `esphome logs`).
-2. Vom **5V-Pin** des D1 mini über den bestückten 1 kΩ an **Pin 1**, Pin-2-Schiene an **G** (nur für den Test –
-   im Betrieb bleibt die Klingelseite getrennt!).
-3. Erwartung: `<Etage> gedrückt` geht auf **ON**, ein Event `gedrueckt` erscheint; nach Trennen nach ~200 ms **OFF**.
-4. Strom dabei: (5 − 1,2) V / 1 kΩ ≈ 3,8 mA – reicht für den PC817 bei internem Pull-up.
+### Tatsächlich verwendeter Weg (11.10., bestanden)
+
+Quelle ist eine **separate Batterie** statt der 5 V vom D1 mini: G am D1 ist belegt, und so bleibt die Trennung zwischen
+Klingel- und ESP-Seite auch beim Test erhalten.
+
+1. D1 mini per USB versorgen, Firmware geflasht, Log offen (`esphome logs`).
+2. Quelle: eine **nackte 18650-Zelle**. **Minus** an die graue Litze (Gong-Rückleiter), **Plus** 2–3 s an die Litze
+   einer Etage (gelb / grün / blau).
+3. Erwartung: nur `<Etage> gedrückt` geht auf **ON**, ein Event `gedrueckt` erscheint; nach dem Trennen ~200 ms später **OFF**.
+
+Ergebnis 11.10.: blau → nur „Etage 2“, gelb → nur „Erdgeschoss“, grün → nur „Etage 1“, je mehrfach, jedes Mal Event
+`gedrueckt`, **kein Übersprechen**. Auffällig: Das Event kam im Log erst nach dem OFF an – ungeklärt, siehe
+[fehlersuche.md Nr. 16](fehlersuche.md#16-event-erscheint-erst-nach-dem-off).
+
+> **Kein 18650-Shield (Powerbank-Platine) als Quelle:** Damit gab es **keine** Erkennung – vermutlich schaltet das
+> Shield bei ~8 mA Last seinen Ausgang nicht ein (nicht weiter untersucht). Eine Batterie direkt oder ein Labornetzteil
+> nehmen.
+
+### Ursprünglicher Vorschlag (nicht verwendet)
+
+Vom **5V-Pin** des D1 mini über den bestückten 1 kΩ an **Pin 1**, Pin-2-Schiene an **G**; Strom dabei
+(5 − 1,2) V / 1 kΩ ≈ 3,8 mA. Nicht genutzt, weil G belegt ist und die Trennung der Seiten dafür aufgehoben werden müsste.
 
 Damit ist die Ausgangsseite geprüft. Das **Wechselspannungsverhalten** (50 Pulse/s) prüft erst der Test an der Anlage.
 
@@ -121,21 +144,22 @@ Damit ist die Ausgangsseite geprüft. Das **Wechselspannungsverhalten** (50 Puls
 
 ## 6. Filter am echten Signal kontrollieren
 
-Konfiguration: `delayed_on: 30ms`, dann `delayed_off: 200ms`.
+Konfiguration (seit 11.10.): `delayed_off: 200ms`, **dann** `delayed_on: 230ms`.
 
 | Situation | Erwartung |
 |---|---|
-| kurzer Druck (~0,3 s) | genau **ein** Event, Eingang ~0,2 s länger an als gedrückt |
+| kurzer Druck (~0,3 s) | genau **ein** Event; Eingang meldet sich nach ~0,23 s und bleibt ~0,2 s länger an als gedrückt |
 | langer Druck (3 s) | ein Event, kein Flackern ON/OFF im Log |
 | zweimal kurz hintereinander (< 0,2 s Pause) | ein Event (Pause wird überbrückt) |
 | kein Druck, Gong ruhig | keine Events (Störspitzen < 30 ms werden verworfen) |
 
-**Wichtig – ungeprüfter Verdacht:** ESPHome wendet die Filter **der Reihe nach** an. Mit PC817 + Gegendiode ist der
-Eingang pro 20-ms-Periode nur rund 8–10 ms „an“. `delayed_on: 30ms` als **erster** Filter verwirft ein ON, sobald vor
-Ablauf der 30 ms ein OFF kommt – das passiert bei Halbwellen jede Periode. Dann käme **gar kein** Druck durch.
-Abhilfe: Reihenfolge tauschen (`delayed_off: 200ms` zuerst, dann `delayed_on: 30ms`), oder `delayed_on` auf ≤ 5 ms
-senken. Beim Tischtest mit Gleichspannung (Schritt 5) fällt das **nicht** auf. Siehe
-[fehlersuche.md](fehlersuche.md#1-gong-klingelt-aber-kein-ereignis-in-ha).
+**Behoben am 11.10. (vor dem Erstflash):** ESPHome wendet die Filter **der Reihe nach** an. Mit PC817 + Gegendiode ist
+der Eingang pro 20-ms-Periode nur rund 8–10 ms „an“. Die frühere Konfiguration hatte `delayed_on: 30ms` als **ersten**
+Filter – der verwirft ein ON, sobald vor Ablauf der 30 ms ein OFF kommt, und das passiert bei Halbwellen jede Periode.
+Dann wäre **gar kein** Druck durchgekommen. Jetzt glättet `delayed_off: 200ms` zuerst; `delayed_on` steht auf 230 ms
+(200 + 30), weil `delayed_off` auch Störspitzen um 200 ms verlängert – so bleiben Spitzen < 30 ms verworfen. Beim
+Tischtest mit Gleichspannung (Schritt 5) fällt die Reihenfolge **nicht** auf; am echten Signal ist sie noch nicht
+beobachtet. Siehe [fehlersuche.md](fehlersuche.md#1-gong-klingelt-aber-kein-ereignis-in-ha).
 
 ---
 
