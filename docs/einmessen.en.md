@@ -13,7 +13,9 @@ form or have not yet been reproduced on the device.
 
 ## 1. Assigning the wires
 
-**Date: Fri 09.10.2026 18:30.**
+**Date: open.** Fri 09.10. and Sat 10.10. were planned – the measurement has not taken place yet (as of 11.10.).
+The colours of the wires to the board are already fixed: grey = chime return conductor, yellow = ground floor,
+green = floor 1, blue = floor 2.
 
 Starting point (photos 06.10.): In the junction box top left above the left distribution board, several telecom cables
 meet (wires red, black, yellow, white, blue, purple, green, grey, black-white and black-orange ringed). At the bottom,
@@ -105,18 +107,38 @@ the transformer.
 
 *(The table is a suggestion derived from the schematic; values are typical datasheet values.)*
 
+**Measured on 11.10.** after soldering, all 3 channels identical: + on pin 1 → pin 2 = **1.08 V** (LED), + on pin 2 →
+pin 1 = **0.60 V** (1N4007); doorbell side ↔ ESP side **no continuity**. If a channel shows "OL", a connection is
+probably missing on the single-pad board (see [einbau.en.md A](einbau.en.md#a-building-the-board)).
+
 ---
 
-## 5. Bench test before installation *(suggestion)*
+## 5. Bench test before installation
 
-Without the bell transformer, each channel can be tested with DC:
+Without the bell transformer, each channel can be tested with DC.
 
-1. Power the D1 mini via USB, firmware flashed, log open (ESPHome Builder → Logs or `esphome logs`).
-2. From the D1 mini's **5V pin** via the fitted 1 kΩ to **pin 1**, pin-2 rail to **G** (for the test only –
-   in operation the doorbell side stays isolated!).
-3. Expectation: `<floor> gedrückt` (pressed) goes **ON**, an event `gedrueckt` appears; after disconnecting, **OFF**
-   after ~200 ms.
-4. Current: (5 − 1.2) V / 1 kΩ ≈ 3.8 mA – enough for the PC817 with internal pull-up.
+### Method actually used (11.10., passed)
+
+The source is a **separate battery** instead of the 5 V from the D1 mini: G on the D1 is occupied, and this way the
+isolation between doorbell side and ESP side is preserved during the test as well.
+
+1. Power the D1 mini via USB, firmware flashed, log open (`esphome logs`).
+2. Source: a **bare 18650 cell**. **Minus** to the grey wire (chime return conductor), **plus** for 2–3 s to the wire of
+   one floor (yellow / green / blue).
+3. Expectation: only `<floor> gedrückt` (pressed) goes **ON**, an event `gedrueckt` appears; after disconnecting,
+   **OFF** ~200 ms later.
+
+Result 11.10.: blue → only "Etage 2", yellow → only "Erdgeschoss", green → only "Etage 1", several times each, event
+`gedrueckt` every time, **no crosstalk**. Notable: the event arrived in the log only after the OFF – unexplained, see
+[fehlersuche.en.md no. 16](fehlersuche.en.md#16-event-appears-only-after-the-off).
+
+> **No 18650 shield (power-bank board) as source:** it gave **no** detection – presumably the shield does not switch its
+> output on at ~8 mA load (not investigated further). Use a battery directly or a lab power supply.
+
+### Original suggestion (not used)
+
+From the D1 mini's **5V pin** via the fitted 1 kΩ to **pin 1**, pin-2 rail to **G**; current (5 − 1.2) V / 1 kΩ ≈
+3.8 mA. Not used because G is occupied and the isolation of the two sides would have to be broken for it.
 
 This verifies the output side. The **AC behaviour** (50 pulses/s) is only checked by the test on the actual system.
 
@@ -124,20 +146,21 @@ This verifies the output side. The **AC behaviour** (50 pulses/s) is only checke
 
 ## 6. Checking the filters on the real signal
 
-Configuration: `delayed_on: 30ms`, then `delayed_off: 200ms`.
+Configuration (since 11.10.): `delayed_off: 200ms`, **then** `delayed_on: 230ms`.
 
 | Situation | Expectation |
 |---|---|
-| short press (~0.3 s) | exactly **one** event, input on ~0.2 s longer than pressed |
+| short press (~0.3 s) | exactly **one** event; input reports after ~0.23 s and stays on ~0.2 s longer than pressed |
 | long press (3 s) | one event, no ON/OFF flicker in the log |
 | two short presses in a row (< 0.2 s pause) | one event (pause is bridged) |
 | no press, chime idle | no events (spikes < 30 ms are discarded) |
 
-**Important – unverified suspicion:** ESPHome applies filters **in order**. With PC817 + reverse diode, the input is
-only "on" for about 8–10 ms per 20 ms period. `delayed_on: 30ms` as the **first** filter discards an ON as soon as an
-OFF arrives before the 30 ms have elapsed – with half-waves that happens every period. Then **no** press would get
-through at all. Remedy: swap the order (`delayed_off: 200ms` first, then `delayed_on: 30ms`), or reduce `delayed_on` to
-≤ 5 ms. The bench test with DC (step 5) does **not** reveal this. See
+**Fixed on 11.10. (before the first flash):** ESPHome applies filters **in order**. With PC817 + reverse diode, the
+input is only "on" for about 8–10 ms per 20 ms period. The former configuration had `delayed_on: 30ms` as the **first**
+filter – it discards an ON as soon as an OFF arrives before the 30 ms have elapsed, and with half-waves that happens
+every period. Then **no** press would have got through at all. Now `delayed_off: 200ms` smooths first; `delayed_on` is
+set to 230 ms (200 + 30), because `delayed_off` also extends spikes by 200 ms – so spikes < 30 ms remain discarded. The
+bench test with DC (step 5) does **not** reveal the order; it has not yet been observed on the real signal. See
 [fehlersuche.en.md](fehlersuche.en.md#1-chime-rings-but-no-event-in-ha).
 
 ---

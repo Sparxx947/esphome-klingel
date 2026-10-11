@@ -9,8 +9,15 @@ Reihenfolge: **A** Platine aufbauen → **B** Inbetriebnahme am Tisch → **C** 
 
 ## A. Platine aufbauen
 
+**Stand 11.10.: erledigt** – gelötet, nachgelötet und gemessen (siehe unten).
+
 Material: Minilötplatine 45 × 39 mm, 3 × PC817C, 3 × 1N4007, 3 × 1 kΩ, Anschlussleitungen. Schaltplan:
-[`../plaene/klingel_plan.svg`](../plaene/klingel_plan.svg).
+[`../plaene/klingel_plan.svg`](../plaene/klingel_plan.svg), Druckfassung mit Litzenfarben:
+[`../plaene/klingel-schaltplan-farbig.pdf`](../plaene/klingel-schaltplan-farbig.pdf).
+
+> **Lehre 11.10. – Einzelpads!** Die Minilötplatine hat **einzelne Lötpunkte ohne Leiterbahnen**. Bauteile nebeneinander
+> einzulöten verbindet nichts – **jede** Verbindung muss auf der Lötseite mit Draht oder einer Zinnbrücke hergestellt
+> werden. Beim ersten Löten fehlten genau deshalb: Gegendiode ↔ Pin 1/Pin 2, Widerstand ↔ Pin 1, Pin 2 ↔ Rückleiter.
 
 1. Bauteile prüfen (Diodentest, siehe [einmessen.md § 4](einmessen.md#4-bauteile-vor-dem-löten-prüfen)).
 2. Drei Kanäle nebeneinander anordnen; links die Klingelseite (Etagenadern + Rückleiter), rechts die ESP-Seite
@@ -23,26 +30,42 @@ Material: Minilötplatine 45 × 39 mm, 3 × PC817C, 3 × 1N4007, 3 × 1 kΩ, Ans
    - **Pin 3** (Emitter) → gemeinsame G-Schiene
 4. Ausgänge: Erdgeschoss → **D5**, Etage 1 → **D6**, Etage 2 → **D7**, G-Schiene → **G**.
    Keine externen Pull-ups – die Firmware nutzt `INPUT_PULLUP`.
+   Litzenfarben: Klingelseite grau = Gong-Rückleiter, gelb = Erdgeschoss, grün = Etage 1, blau = Etage 2;
+   ESP-Seite gelb → D5, grün → D6, blau → D7, schwarz → G. **Kein Rot** (bleibt für +5 V).
 5. **Nicht** D3, D4 oder D8 verwenden (Boot-Pins); D1 bleibt für ein mögliches Relais frei.
-6. Nach dem Löten: Durchgang Klingelseite ↔ ESP-Seite messen → muss **unterbrochen** sein.
+6. Nach dem Löten je Kanal Diodentest über Pin 1/Pin 2 und Durchgang Klingelseite ↔ ESP-Seite messen.
 7. Klemmen/Leitungen beschriften (Etage, Rückleiter).
+
+Messwerte 11.10. nach dem Nachlöten (alle 3 Kanäle gleich):
+
+| Messung | Ergebnis |
+|---|---|
+| Diodentest, + an Pin 1 → Pin 2 | 1,08 V (LED) |
+| Diodentest, + an Pin 2 → Pin 1 | 0,60 V (1N4007) |
+| Durchgang Klingelseite ↔ ESP-Seite | kein Durchgang |
 
 ---
 
 ## B. Inbetriebnahme am Tisch
 
+**Stand 11.10.:** Schritte 1–5 und 9 erledigt; 6 (HA-Adoption), 7 (feste IP) und 8 (Builder-Secrets) offen.
+
 1. Echte Secrets bereitstellen (Vorlage `firmware/secrets.example.yaml`; echte Werte nur lokal bzw. im Builder).
-2. **Vor dem ersten Flash:** Filter-Reihenfolge in `firmware/klingel.yaml` klären
+2. ✅ **Vor dem ersten Flash:** Filter-Reihenfolge in `firmware/klingel.yaml` klären – **erledigt 11.10.**:
+   `delayed_off: 200ms` zuerst, dann `delayed_on: 230ms`
    (siehe [fehlersuche.md Nr. 1](fehlersuche.md#1-gong-klingelt-aber-kein-ereignis-in-ha)).
 3. D1 mini per USB an den PC, Port freigeben: `setfacl -m u:$USER:rw /dev/ttyUSB0`.
 4. Flashen: `esphome run klingel.yaml --no-logs --device /dev/ttyUSB0` → „Successfully compiled“ muss im Log stehen.
    **Kein** `esphome upload` und **kein** Build mit Dummy-Secrets.
-5. Gegenprobe: per API mit dem echten Schlüssel verbinden, Zustände lesen.
+   *(11.10.: lokal per USB mit ESPHome 2026.9.1, RAM 39,0 %, Flash 40,3 %, WLAN verbunden.)*
+5. Gegenprobe: per API mit dem echten Schlüssel verbinden, Zustände lesen. *(11.10.: API-Handshake ok.)*
 6. Home Assistant: ESPHome-Integration mit Host und Verschlüsselungsschlüssel hinzufügen; Entitätsnamen prüfen
    (erwartet `event.klingel_erdgeschoss`, `event.klingel_etage_1`, `event.klingel_etage_2`).
 7. Router: feste IP für die MAC des D1 mini vergeben (Werkzeug `fb_feste_ip.py`, wie bei den anderen ESPs).
 8. ESPHome Builder: Secrets ergänzen, „New device“ → überspringen → YAML einfügen, **nicht** installieren. Ab jetzt OTA.
-9. Tischtest je Kanal mit 5 V über 1 kΩ (siehe [einmessen.md § 5](einmessen.md#5-tischtest-vor-dem-einbau-vorschlag)).
+   *(11.10.: als `klingel.yaml` angelegt; `klingel_api_key` / `klingel_ap_password` fehlen dort noch.)*
+9. Tischtest je Kanal mit einer separaten Gleichspannungsquelle – 18650-Zelle oder Labornetzteil, **kein** 18650-Shield
+   (siehe [einmessen.md § 5](einmessen.md#5-tischtest-vor-dem-einbau)). *(11.10.: bestanden.)*
 
 ---
 
@@ -51,7 +74,7 @@ Material: Minilötplatine 45 × 39 mm, 3 × PC817C, 3 × 1N4007, 3 × 1 kΩ, Ans
 | Ort | Was |
 |---|---|
 | Abzweigdose oben links über dem linken Verteiler | Abgriff der 3 Etagenadern + Rückleiter (nur Kleinspannung) |
-| daneben | Platine + D1 mini (Gehäuse noch offen) |
+| daneben | Platine + D1 mini im Gehäuse aus `gehaeuse/` (konstruiert, Druck offen); Wandmontage mit 4 × Spax 4 |
 | linker Verteiler, Reihe 5, Platz 49–52 („SNS016“) | Schuko-Steckdose für das USB-Netzteil |
 
 1. **Sicherung des Klingeltrafos aus** (Trafo: rechter Verteiler, Reihe 3, Platz 25/26).

@@ -10,8 +10,16 @@ Sequence: **A** build the board → **B** commissioning on the bench → **C** i
 
 ## A. Building the board
 
+**As of 11.10.: done** – soldered, re-soldered and measured (see below).
+
 Material: mini solder board 45 × 39 mm, 3 × PC817C, 3 × 1N4007, 3 × 1 kΩ, connecting wires. Schematic:
-[`../plaene/klingel_plan.svg`](../plaene/klingel_plan.svg).
+[`../plaene/klingel_plan.svg`](../plaene/klingel_plan.svg), print version with wire colours:
+[`../plaene/klingel-schaltplan-farbig.pdf`](../plaene/klingel-schaltplan-farbig.pdf).
+
+> **Lesson 11.10. – single pads!** The mini solder board has **individual pads without tracks**. Soldering components
+> next to each other connects nothing – **every** connection has to be made on the solder side with wire or a solder
+> bridge. That is exactly why these were missing after the first soldering: reverse diode ↔ pin 1/pin 2,
+> resistor ↔ pin 1, pin 2 ↔ return conductor.
 
 1. Check components (diode test, see [einmessen.en.md § 4](einmessen.en.md#4-checking-components-before-soldering)).
 2. Arrange three channels side by side; doorbell side on the left (floor wires + return conductor), ESP side on the
@@ -25,26 +33,42 @@ Material: mini solder board 45 × 39 mm, 3 × PC817C, 3 × 1N4007, 3 × 1 kΩ, c
    - **pin 3** (emitter) → common G rail
 4. Outputs: ground floor → **D5**, floor 1 → **D6**, floor 2 → **D7**, G rail → **G**.
    No external pull-ups – the firmware uses `INPUT_PULLUP`.
+   Wire colours: doorbell side grey = chime return, yellow = ground floor, green = floor 1, blue = floor 2;
+   ESP side yellow → D5, green → D6, blue → D7, black → G. **No red** (reserved for +5 V).
 5. Do **not** use D3, D4 or D8 (boot pins); D1 stays free for a possible relay.
-6. After soldering: measure continuity doorbell side ↔ ESP side → must be **open**.
+6. After soldering, per channel: diode test across pin 1/pin 2 and continuity doorbell side ↔ ESP side.
 7. Label terminals/wires (floor, return conductor).
+
+Measured values 11.10. after re-soldering (all 3 channels identical):
+
+| Measurement | Result |
+|---|---|
+| diode test, + on pin 1 → pin 2 | 1.08 V (LED) |
+| diode test, + on pin 2 → pin 1 | 0.60 V (1N4007) |
+| continuity doorbell side ↔ ESP side | no continuity |
 
 ---
 
 ## B. Commissioning on the bench
 
+**As of 11.10.:** steps 1–5 and 9 done; 6 (HA adoption), 7 (static IP) and 8 (Builder secrets) open.
+
 1. Provide real secrets (template `firmware/secrets.example.yaml`; real values only locally or in the Builder).
-2. **Before the first flash:** settle the filter order in `firmware/klingel.yaml`
+2. ✅ **Before the first flash:** settle the filter order in `firmware/klingel.yaml` – **done 11.10.**:
+   `delayed_off: 200ms` first, then `delayed_on: 230ms`
    (see [fehlersuche.en.md no. 1](fehlersuche.en.md#1-chime-rings-but-no-event-in-ha)).
 3. Connect the D1 mini to the PC via USB, grant port access: `setfacl -m u:$USER:rw /dev/ttyUSB0`.
 4. Flash: `esphome run klingel.yaml --no-logs --device /dev/ttyUSB0` → "Successfully compiled" must appear in the log.
    **No** `esphome upload` and **no** build with dummy secrets.
-5. Cross-check: connect via the API with the real key, read states.
+   *(11.10.: locally via USB with ESPHome 2026.9.1, RAM 39.0 %, flash 40.3 %, Wi-Fi connected.)*
+5. Cross-check: connect via the API with the real key, read states. *(11.10.: API handshake ok.)*
 6. Home Assistant: add the ESPHome integration with host and encryption key; check entity names
    (expected `event.klingel_erdgeschoss`, `event.klingel_etage_1`, `event.klingel_etage_2`).
 7. Router: assign a static IP for the D1 mini's MAC (tool `fb_feste_ip.py`, as with the other ESPs).
 8. ESPHome Builder: add secrets, "New device" → skip → paste YAML, do **not** install. From now on OTA.
-9. Bench test per channel with 5 V via 1 kΩ (see [einmessen.en.md § 5](einmessen.en.md#5-bench-test-before-installation-suggestion)).
+   *(11.10.: created as `klingel.yaml`; `klingel_api_key` / `klingel_ap_password` still missing there.)*
+9. Bench test per channel with a separate DC source – 18650 cell or lab power supply, **not** an 18650 shield
+   (see [einmessen.en.md § 5](einmessen.en.md#5-bench-test-before-installation)). *(11.10.: passed.)*
 
 ---
 
@@ -53,7 +77,7 @@ Material: mini solder board 45 × 39 mm, 3 × PC817C, 3 × 1N4007, 3 × 1 kΩ, c
 | Location | What |
 |---|---|
 | Junction box top left above the left distribution board | tap of the 3 floor wires + return conductor (extra-low voltage only) |
-| next to it | board + D1 mini (enclosure still open) |
+| next to it | board + D1 mini in the enclosure from `gehaeuse/` (designed, printing open); wall mounting with 4 × Spax 4 |
 | left distribution board, row 5, slot 49–52 ("SNS016") | Schuko socket for the USB power supply |
 
 1. **Bell transformer's circuit breaker off** (transformer: right distribution board, row 3, slot 25/26).

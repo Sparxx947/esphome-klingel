@@ -7,7 +7,7 @@ Labels: **verified** = actually occurred in the project notes/other ESP projects
 
 | # | Symptom | Cause | Solution | Origin |
 |---|---|---|---|---|
-| 1 | Chime rings, but no event in HA | filter order (see below) | `delayed_off` before `delayed_on` | derived |
+| 1 | Chime rings, but no event in HA | filter order (see below) | `delayed_off: 200ms` before `delayed_on: 230ms` – **fixed 11.10.** before the first flash | derived, fixed |
 | 2 | No event, input always OFF | reverse diode soldered in the same direction as the LED → bypasses the LED (0.7 V < 1.2 V) | turn the diode around: stripe to pin 1 | derived |
 | 3 | No event, PC817 broken | reverse diode missing → LED gets up to ~17 V reverse voltage (tolerates ~6 V) | replace PC817, fit the diode | derived |
 | 4 | Wrong floor reported | wire assigned incorrectly | swap wires or adjust `substitutions` | derived |
@@ -22,14 +22,18 @@ Labels: **verified** = actually occurred in the project notes/other ESP projects
 | 13 | D1 doesn't boot / hangs at startup | input placed on D3/D4/D8 (boot pins) | use only D5/D6/D7 | derived (pin choice 04.10.) |
 | 14 | Events delayed / device often `unavailable` | weak Wi-Fi at the distribution board | check RSSI, change position, if necessary D1 mini Pro with external antenna | derived |
 | 15 | Push doesn't reach one person | wrong `notify` service / app logged out | check services in HA; `continue_on_error` ensures the remaining actions keep running | derived |
+| 16 | Event `gedrueckt` appears only after the OFF of the binary sensor | **unexplained** (see below) | check after HA adoption; workaround: trigger the automation on the binary sensor ON instead of the event | verified (log 11.10.), **open** |
+| 17 | Channel doesn't respond, diode test shows "OL" or wrong values | the mini solder board has **individual pads without tracks** – connection not made (on 11.10. reverse diode ↔ pin 1/pin 2, resistor ↔ pin 1, pin 2 ↔ return conductor were missing) | make all connections on the solder side with wire/solder bridges, diode test per channel (1.08 V / 0.60 V) | verified (11.10.) |
+| 18 | Bench test: no detection with an 18650 shield as source | the shield (power-bank board) presumably does not switch its output on at ~8 mA load (not investigated further) | use a bare 18650 cell or a lab power supply | verified (11.10.), cause suspected |
 
 ---
 
 ## 1. Chime rings, but no event in HA
 
-**Status: suspicion, not checked on the device.**
+**Status: fixed on 11.10.2026 before the first flash.** The explanation stays here for traceability. The new order has
+not yet been observed on the real AC signal (the bench test used DC) – only the acceptance test will show it.
 
-In `firmware/klingel.yaml` the filters are in this order:
+Until 11.10. the filters in `firmware/klingel.yaml` were in this order:
 
 ```yaml
 filters: &klingelfilter
@@ -41,25 +45,54 @@ ESPHome applies filters **one after another**. `delayed_on` waits 30 ms and **di
 before then. With PC817 + reverse diode, the LED conducts only during the positive half-wave – the input is on for only
 about 8–10 ms per 20 ms period. The ON then never survives the 30 ms, and `delayed_off` gets nothing to smooth.
 
-The comment in the YAML ("Nulldurchgänge überbrücken" – bridge zero crossings) stems from the PC814 planning (both
+The former comment in the YAML ("Nulldurchgänge überbrücken" – bridge zero crossings) stemmed from the PC814 planning (both
 half-waves, only short gaps around the zero crossing); even there, whether the gaps are bridged depends on the fall time
 of the phototransistor.
 
 **Check:** set the log to `DEBUG`/`VERBOSE` (or temporarily remove the filter) and press the button: does the raw state
 flap at a 10 ms rate?
 
-**Solution (suggestion):**
+**Implemented solution (11.10.):**
 
 ```yaml
 filters: &klingelfilter
-  - delayed_off: 200ms    # Halbwellen-Lücken (10 ms) zuerst überbrücken
-  - delayed_on: 30ms      # dann kurze Störspitzen verwerfen
+  - delayed_off: 200ms    # erst Halbwellen-Lücken (≤ 10–20 ms) zu Dauer-EIN glätten
+  - delayed_on: 230ms     # dann alles verwerfen, was vor der Glättung kürzer als ~30 ms war
 ```
 
-(Comments: first bridge the half-wave gaps (10 ms); then discard short spikes.)
+(Comments: first smooth the half-wave gaps (≤ 10–20 ms) into a continuous ON; then discard everything that was shorter
+than ~30 ms before smoothing.)
 
-Alternatively drop `delayed_on` or set it to a few ms. The bench test with DC does **not** reveal the problem – only the
-test on the real system does.
+`delayed_on` is **230 ms** instead of 30 ms: `delayed_off` extends every ON by 200 ms – a spike as well. With
+200 + 30 ms, spikes below 30 ms are still discarded; a real press is reported after ~0.23 s.
+
+The bench test with DC does **not** reveal the original problem – only the test on the real system does.
+
+---
+
+## 16. Event appears only after the OFF
+
+**Status: open, not explained.**
+
+During the bench test on 11.10., the event `gedrueckt` arrived in the `esphome logs` client **~0.13–0.21 s after the OFF**
+of the binary sensor each time, never at the ON. Example:
+
+| Line | Time |
+|---|---|
+| binary sensor ON | 44.26 s |
+| binary sensor OFF | 49.84 s |
+| event `gedrueckt` | 50.05 s |
+
+What is known:
+
+- The `[S]` lines are formatted by the client (aioesphomeapi) **on receipt**; on the device, `Event::trigger` only logs
+  at `VERBOSE`. The timestamps therefore show when the client received the message, not necessarily when the device
+  fired it.
+- `on_press` is correct: the PressTrigger fires on `state = true`.
+
+**Check:** after HA adoption, when `event.klingel_*` actually gets its timestamp in HA.
+
+**Workaround if confirmed:** trigger the automation on the binary sensor **ON** instead of the event.
 
 ---
 
