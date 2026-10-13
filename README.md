@@ -6,11 +6,20 @@ Die vorhandene, klassische Klingelanlage im Haus bekommt einen „Mithörer“: 
 drei Optokoppler, an **welcher Etage** jemand klingelt, und meldet das als `event` (device_class `doorbell`) an
 Home Assistant. Der Gong klingelt **unverändert weiter** – der ESP greift nur Kleinspannung ab und schaltet nichts.
 
+> **⚠ Stand 13.10.2026: Die Optokoppler-Variante (PC817) funktioniert in diesem Haus nicht.** Der Einbautest am
+> 12.10. hat gezeigt: Jede Etage hat einen **eigenen batteriebetriebenen Gong mit Kontakteingang** (Etage 1: 9 V DC an
+> den Gong-Klemmen in Ruhe). Der Taster schließt nur die Gong-Schleife kurz, der Klingeltrafo ist am Gong-Kreis **nicht
+> beteiligt** – durch die Optokoppler-LED fließt also nie Strom. Geplant ist ein Umbau auf **3 × 2N7000 (MOSFET) +
+> 3 × 1 MΩ** ([`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf)); die Transistoren kommen
+> am 14.10. Vorher muss **je Etage die Polarität (Plus/Minus) der Gong-Adern** in der Abzweigdose gemessen werden.
+> **Die Firmware ist noch unverändert** (PC817-Stand). Die Beschreibung der PC817-Schaltung unten bleibt zur
+> Nachvollziehbarkeit stehen. Einzelheiten: [docs/verlauf.md](docs/verlauf.md), [Umbau auf 2N7000](#umbau-auf-2n7000-geplant).
+
 | | |
 |---|---|
 | Projektkürzel (Werkstattbuch) | **K1 Türklingel · 3 Etagen mithören** |
 | Board | Wemos D1 mini V3.0.0 (ESP8266), „D1 #2“ aus dem Bestand |
-| Erkennung | 3 × Optokoppler **PC817C** + je eine antiparallele Gegendiode **1N4007** + 1 kΩ Vorwiderstand |
+| Erkennung | 3 × Optokoppler **PC817C** + je eine antiparallele Gegendiode **1N4007** + 1 kΩ Vorwiderstand – **funktioniert hier nicht** (Batteriegongs), geplant: 3 × **2N7000** + 3 × 1 MΩ |
 | Abgriff | Abzweigdose oben links über dem linken Kleinverteiler im Treppenhaus (dort laufen **alle** Klingeladern zusammen, nur Kleinspannung) |
 | Klingeltrafo | Hager ST303, 8 VA, PRI 230 V (Klemmen 1/7), SEC 8 V (2–4) / 12 V (2–8), rechter Verteiler, Reihe 3, Platz 25/26 |
 | Stromversorgung D1 | USB-Netzteil an einer Schuko-Steckdose im linken Verteiler („SNS016“, Reihe 5, Platz 49–52) – **nicht** aus dem Klingeltrafo |
@@ -28,6 +37,9 @@ Hinweise für den Nachbau in einem anderen Haus:
   (`switch.wandpanel_*`, `button.wandpanel_*`, `notify.wandpanel_*`).
 - **Klingeltrafo zuerst messen:** Die Gong-Spannung (hier 8 oder 12 V AC) vor dem Löten mit dem Multimeter bestimmen
   und Vorwiderstand und Gegendiode danach prüfen (siehe [docs/einmessen.md](docs/einmessen.md)).
+- **Vorher den Gong selbst ansehen:** Hat er eine eigene Batterie und nur zwei Drähte zum Taster (Kontakteingang),
+  treibt der Trafo ihn nicht – dann passt die Optokoppler-Schaltung nicht, sondern die MOSFET-Variante
+  ([Umbau auf 2N7000](#umbau-auf-2n7000-geplant)). Genau das ist hier am 12.10. passiert.
 
 ## Prinzip
 
@@ -47,10 +59,20 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 
 ---
 
-## Status (Stand 11.10.2026)
+## Status (Stand 13.10.2026)
+
+> **Kurz:** Gerät geflasht, in HA und im Builder. Der Einbau an der Abzweigdose am 12.10. ist
+> **gescheitert**: Die Gongs sind **Batteriegongs mit Kontakteingang**, der PC817-Abgriff bekommt nie Strom. Die Platine
+> ist abgeklemmt (graue Litze ab), die Gongs laufen normal. **Nächster Schritt:** Polarität je Etage messen, dann Umbau
+> auf 2N7000 (Teile kommen 14.10.) und Firmware anpassen. **Firmware ist noch nicht angepasst.**
 
 | Bereich | Stand | Datum |
 |---|---|---|
+| **Gong-Typ** | **geklärt**: je Etage ein eigener Batteriegong mit Kontakteingang. Etage 1: elektronischer Gong mit 9-V-Block, Lautsprecher, nur 2 Drähte, **9 V DC** an den Klemmen in Ruhe (gemessen). Erdgeschoss: vermutlich ebenfalls 9 V (*ungeprüft*). Etage 2: anderer Gong mit 3 × Babyzelle (C/LR14) = 4,5 V (*Spannung an den Adern ungemessen*). Hersteller unbekannt. | 12.10. |
+| **PC817-Abgriff** | **funktioniert hier nicht** – Trafo ist nicht im Gong-Kreis, die LED bekommt keinen Strom. Einzige Treffer im Log waren Anklemmstöße. Platine abgeklemmt. | 12.10. |
+| **Umbau auf 2N7000** | **geplant**, Druckplan fertig (`plaene/klingel-schaltplan-mosfet.pdf`), Transistor-Set bestellt (Lieferung 14.10.), 1 MΩ vorhanden. Plan beruht auf einer **ungemessenen Annahme** (je Etage eigene Plus-Ader, Minus-Seiten verbindbar). | 12.10. |
+| Polarität der Gong-Adern je Etage (DC) | **offen** – Messung in der Abzweigdose vor dem Umbau | – |
+| Firmware für 2N7000 | **noch nicht angepasst** (`inverted` und Filter stammen aus der PC817-Variante, siehe [Umbau auf 2N7000](#umbau-auf-2n7000-geplant)) | – |
 | Firmware `klingel.yaml` (3 Taster, Events, Filter) | **fertig**, Filter-Reihenfolge korrigiert (`delayed_off: 200ms` vor `delayed_on: 230ms`) | 04.10. / 11.10. |
 | Erstflash | **erledigt** per USB mit echten Secrets (ESPHome 2026.9.1, RAM 39,0 %, Flash 40,3 %); WLAN verbunden, API-Handshake mit echtem Schlüssel ok | 11.10. |
 | Etagen-Namen / Entitäten | **fertig** (Erdgeschoss / Etage 1 / Etage 2) | 04.10. |
@@ -63,14 +85,15 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 | 1 kΩ-Widerstände | **vorhanden und verbaut** | 11.10. |
 | Platine (3 Kanäle) | **gelötet und geprüft** (Diodentest je Kanal, Trennung Klingel-/ESP-Seite) – Einzelpad-Platine, fehlende Verbindungen nachgelötet | 11.10. |
 | Tischtest | **bestanden** mit 18650-Zelle: alle 3 Kanäle, jede Farbe nur ihre Etage, kein Übersprechen | 11.10. |
-| Zuordnung Ader ↔ Etage in der Abzweigdose | **offen** – Messung am 10.10. hat nicht stattgefunden | – |
-| Gong-Spannung (8 V oder 12 V) | **offen** | – |
+| Zuordnung Ader ↔ Etage in der Abzweigdose | **teilweise**: Die 5er-WAGO ist Trafo-Pol 4 (dort laufen alle Taster-Leitungen zusammen). Welche zwei Adern je Etage die Gong-Schleife bilden, ist noch **offen** | 12.10. |
+| Gong-Spannung (8 V oder 12 V AC) | **entfällt** – die Gongs hängen nicht am Trafo, sondern an eigenen Batterien | 12.10. |
 | Feste IP | ✔ im Router fest vergeben | 11.10. |
 | ESPHome Builder | als `klingel.yaml` angelegt, Secrets eingetragen, Gerät online ✔ | 11.10. |
 | Adoption in HA | ✔ eingebunden: `event.klingel_erdgeschoss` / `_etage_1` / `_etage_2`, `binary_sensor.klingel_*_gedruckt`, Status, WLAN-Signal, Laufzeit | 11.10. |
 | Event `gedrueckt` erst nach dem OFF im Log | ✔ geklärt: In HA kommt das Event **beim Drücken** an (Test 11.10.: Event 49,818 s, Binärsensor EIN 49,922 s, AUS 53,588 s). Die Verzögerung war nur die Ausgabe des Log-Clients. ([Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | 11.10. |
 | HA-Paket `ha/klingel.yaml` | **Entwurf**, YAML geparst, Sperrlogik in HA getestet, **noch nicht in HA angelegt** | 04./06.10. |
-| Gehäuse | **konstruiert** (`gehaeuse/`), gedruckt noch nicht bestätigt | 11.10. |
+| Gehäuse | **konstruiert** (`gehaeuse/`), Druck am 11.10. gestartet (Abschluss in den Notizen nicht ausdrücklich bestätigt) | 11.10. |
+| Nebenbefund 12.10. | **ungeklärt**: Beim Einbautest kam ein Event in HA an, `binary_sensor.klingel_*_gedruckt` zeigte dabei nie „on“ | 12.10. |
 
 ---
 
@@ -90,6 +113,8 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 | Gehäuse | 1 | Box + Deckel, `gehaeuse/klingel_box.stl` + `gehaeuse/klingel_deckel.stl` (PLA) + 4 Blechschrauben 3 × 12, Wandmontage 4 × Spax 4 | Eigendruck | konstruiert 11.10., Druck nicht bestätigt |
 | Werkzeug | – | Multimeter (geliehen; eigenes UNI-T UT139C bestellt), Lötkolben | Bestand / bestellt | vorhanden |
 | *optional:* Relaismodul | 1 | für „Gong stumm“ an D1 (GPIO5), Öffner-Kontakt | – | nur Idee, auskommentiert |
+| **Umbau 2N7000:** MOSFET | 3 | 2N7000 (TO-92) aus einem Transistor-Set mit 24 Typen (ALLECIN; enthält u. a. auch BC547) | Amazon.de, **B0C1V82313**, 9,99 € | bestellt 12.10., Lieferung 14.10. (Stückzahl je Typ nicht belegt) |
+| **Umbau 2N7000:** Gate-Widerstand | 3 | 1 MΩ | eigenes Sortiment | vorhanden |
 
 **Nicht mehr nötig** (aus dem Trafo-Versorgungsentwurf vom 04.10.): Brückengleichrichter, Elko 1000 µF/35 V, Step-down-Modul,
 1N5408-Dioden für den Dioden-Abgriff, Hutschienengehäuse, D1 mini Pro mit Außenantenne (Verteiler sind Kunststoff in einer
@@ -97,7 +122,45 @@ Holznische, kein Metallkasten).
 
 ---
 
+## Umbau auf 2N7000 (geplant)
+
+Druckplan: [`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf) (A4 quer, erzeugt von
+`plaene/klingel_mosfet_plan.py`, Vorschau `plaene/klingel-schaltplan-mosfet-vorschau.png`).
+
+**Warum:** Jeder Gong legt in Ruhe seine Batteriespannung (Etage 1: 9 V DC) auf die Taster-Schleife, der Taster schließt
+sie kurz. Ein MOSFET-Gate über 1 MΩ belastet die Schleife praktisch nicht und schaltet schon bei wenigen Volt.
+
+| Von | Bauteil | Nach | Hinweis |
+|---|---|---|---|
+| Plus-Ader der Etage (Signal, in Ruhe 9 V) | 1 MΩ | 2N7000 **Gate** | |
+| 2N7000 **Drain** | – | D5 / D6 / D7 | interner Pull-up |
+| 2N7000 **Source** | – | gemeinsame Masse | alle drei Source zusammen |
+| Minus-Adern aller Etagen | – | gemeinsame Masse | nur zulässig, wenn die Minus-Seiten verbindbar sind |
+| D1 mini **G** | – | gemeinsame Masse | |
+
+| Zustand | Ader | MOSFET | Eingang |
+|---|---|---|---|
+| Ruhe | 9 V | leitet | **LOW** |
+| Taste gedrückt | 0 V | sperrt | **HIGH** |
+
+Pinbelegung 2N7000 (flache Seite zum Betrachter, Beinchen nach unten): **Source · Gate · Drain**. Der Optokoppler,
+die 1N4007 und der 1 kΩ entfallen.
+
+**Annahmen, die vor dem Löten gemessen werden müssen** (alle noch *ungeprüft*):
+
+- Je Etage gibt es eine **eigene Plus-Ader**, und die Minus-Seiten der drei Gongs dürfen verbunden werden. Nie zwei
+  Plus-Adern verbinden und nie Plus mit Minus – das ist für den Gong ein Tastendruck.
+- Die Aderspannung reicht für den 2N7000: ab etwa 3,5 V. Etage 2 (Gong mit 4,5 V) liegt knapp darüber; liegt sie
+  darunter, ist ein BC547 (im Set enthalten) vorgesehen.
+
+**Firmware:** noch **nicht** umgestellt. Laut Plan ändert sich die Logik: Ruhe = LOW, Druck = HIGH – `inverted: true`
+der PC817-Variante muss dafür weg, und die 50-Hz-Glättung (`delayed_off: 200ms` / `delayed_on: 230ms`) soll durch einen
+einfachen Entprellfilter ersetzt werden. Die genauen Werte sind noch nicht festgelegt.
+
 ## Pinbelegung und Verdrahtung
+
+> Dieser Abschnitt beschreibt die **PC817-Variante** (Stand 11.10.), die hier nicht funktioniert. Für den Umbau gilt
+> [Umbau auf 2N7000](#umbau-auf-2n7000-geplant).
 
 Schaltplan: [`plaene/klingel_plan.svg`](plaene/klingel_plan.svg) (erzeugt von `plaene/klingel_plan.py`).
 Druckfassung mit Litzenfarben (A4 quer): [`plaene/klingel-schaltplan-farbig.pdf`](plaene/klingel-schaltplan-farbig.pdf)
@@ -250,9 +313,9 @@ das Gerät als `klingel.yaml` angelegt und die Secrets eingetragen. HA-Adoption 
 | [docs/fehlersuche.md](docs/fehlersuche.md) | bekannte und absehbare Fehlerbilder mit Ursache und Lösung |
 | [docs/verlauf.md](docs/verlauf.md) | Entscheidungen und verworfene Varianten (PC814, Trafo-Versorgung, Dioden-Abgriff) |
 
-**Kurzfassung der Reihenfolge:** Teile prüfen ✅ → Platine löten ✅ → Erstflash ✅ → Tischtest ✅ → Adern messen →
-HA/Builder/feste IP → Gehäuse drucken → Einbau an der Abzweigdose → je Etage einmal klingeln → HA-Paket anlegen →
-Alexa-Routinen.
+**Kurzfassung der Reihenfolge:** Teile prüfen ✅ → Platine löten ✅ → Erstflash ✅ → Tischtest ✅ →
+HA/Builder/feste IP ✅ → Einbau mit PC817 ✗ (12.10., Batteriegongs) → **Polarität je Etage messen (V⎓)** → Umbau auf
+2N7000 → Firmware umstellen → je Etage einmal klingeln → HA-Paket anlegen → Alexa-Routinen.
 
 **Sicherheit:** Vor dem Öffnen von Klemmen die Sicherung des Klingeltrafos ausschalten. In der Abzweigdose liegen laut
 Sichtprüfung (Jens, 06.10.) nur Klingeladern. Die 230-V-Seite des Trafos gehört dem Elektriker.
@@ -288,24 +351,29 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 
 | # | Punkt | Wer | Termin |
 |---|---|---|---|
-| 1 | Adern in der Abzweigdose messen und Etagen zuordnen (Multimeter V~) | Jens | **offen** (am 10.10. nicht erfolgt) |
+| 1 | ~~Adern in der Abzweigdose messen (V~)~~ – am 12.10. gemessen; ersetzt durch Nr. 14 (DC-Messung je Gong-Schleife) | Jens | ✅ 12.10. |
 | 2 | Kreppband-Beschriftung in der Dose lesen (Gegenprobe zur Messung) | Jens | mit 1 |
-| 3 | Gong-Spannung feststellen: 8 V (Klemmen 2–4) oder 12 V (2–8) | Jens | mit 1 |
+| 3 | ~~Gong-Spannung 8 V oder 12 V~~ – entfällt, Batteriegongs | – | 12.10. |
 | 4 | 1 kΩ-Widerstände | – | ✅ vorhanden, verbaut 11.10. |
 | 5 | Minilötplatinen-Lieferung | – | ✅ geliefert 09.10. |
 | 6 | **Filter-Reihenfolge** in `klingel.yaml` (siehe Fehlersuche Nr. 1) | – | ✅ korrigiert 11.10., vor dem Erstflash |
 | 7 | Kopfkommentare in `klingel.yaml` auf PC817 + USB-Versorgung aktualisieren | – | ✅ 11.10. |
 | 8 | Schaltplan als PDF (PC817 + Gegendiode, mit Litzenfarben) | – | ✅ `plaene/klingel-schaltplan-farbig.pdf`, 11.10. |
 | 9 | Platine löten, Tischtest, Erstflash | Jens/Claude | ✅ 11.10. |
-| 9a | Feste IP vergeben | – | **offen** |
+| 9a | Feste IP vergeben | – | ✅ 11.10. |
 | 9b | ✅ Builder-Secrets `klingel_api_key` / `klingel_ap_password` ergänzt, HA-Adoption | – | erledigt 11.10. |
 | 9c | ✅ Event-Verzögerung geprüft: in HA kommt das Event beim Drücken ([Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | – | erledigt 11.10. |
 | 10 | HA-Paket anlegen, Alexa (`alexa.yaml`, Routinen), Start-URL Panels E1/E2 prüfen | Claude/Jens | nach Adoption |
 | 11 | WLAN-Signal am Einbauort prüfen | – | nach Einbau |
 | 12 | Gehäuse konstruieren | – | ✅ 11.10. (`gehaeuse/`) |
-| 12a | Gehäuse drucken | – | **offen** |
-| 12b | Einbau an der Abzweigdose und Abnahmetest ([einbau.md](docs/einbau.md) C/D) | – | nach 1–3 und 12a |
+| 12a | Gehäuse drucken | Jens | am 11.10. gestartet |
+| 12b | Einbau an der Abzweigdose und Abnahmetest ([einbau.md](docs/einbau.md) C/D) | – | 12.10. mit PC817 gescheitert; neu nach 14–16 |
 | 13 | optional: Relais „Gong stumm“ | – | später, nicht beauftragt |
+| 14 | **Je Etage die zwei Adern mit Gong-Spannung finden und Polarität messen** (Multimeter auf V⎓, Bereich vorher an einem bekannten Punkt prüfen) | Jens | vor dem Umbau |
+| 15 | Transistor-Set (2N7000) | – | bestellt, Lieferung **14.10.** |
+| 16 | Umbau: PC817/1N4007/1 kΩ raus, 3 × 2N7000 + 3 × 1 MΩ nach `plaene/klingel-schaltplan-mosfet.pdf` | Jens | ab 14.10. |
+| 17 | Firmware auf die neue Logik umstellen (`inverted` weg, Entprellfilter statt 50-Hz-Glättung), per OTA flashen, Abnahmetest je Etage | Claude/Jens | nach 16 |
+| 18 | Nebenbefund 12.10. klären: Event kam in HA an, `binary_sensor.klingel_*_gedruckt` zeigte nie „on“ | – | nach 17 |
 
 ---
 
@@ -325,6 +393,11 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 | `plaene/klingel_plan.py` | erzeugt den Schaltplan (matplotlib); schreibt nach `doku/klingel_plan.svg` relativ zum Arbeitsverzeichnis – Pfad bei Bedarf anpassen |
 | `plaene/klingel-schaltplan-farbig.pdf` | Druckblatt A4 quer: Schaltplan mit Litzenfarben, Farbschema und Kennfarben der Bauteile |
 | `plaene/klingel_plan_druck.py` | erzeugt das farbige PDF; liest `klingel_plan.py` aus dem Arbeitsverzeichnis (also in `plaene/` ausführen) |
+| `plaene/klingel-schaltplan-mosfet.pdf` | Druckblatt A4 quer: Umbau auf 3 × 2N7000 + 3 × 1 MΩ, Messanleitung Polarität, Pinbelegung 2N7000 (12.10.) |
+| `plaene/klingel-schaltplan-mosfet-vorschau.png` | Vorschau des MOSFET-Plans |
+| `plaene/klingel_mosfet_plan.py` | erzeugt PDF und Vorschau (matplotlib); in `plaene/` ausführen |
+| `plaene/klingel-messblatt-abzweigdose.pdf` | Messblatt A4 hoch für die Aderzuordnung (11.10.) – **beruht noch auf der Annahme „Trafo treibt Gong“ (V~)**, nur noch zur Nachvollziehbarkeit |
+| `plaene/klingel_messblatt.py` | erzeugt das Messblatt (matplotlib); in `plaene/` ausführen |
 | `gehaeuse/klingel-gehaeuse.scad` | OpenSCAD-Quelle des Gehäuses (`TEIL = "box"` / `"deckel"` / `"zusammen"` / `"schnitt"` / `"alle"`) |
 | `gehaeuse/klingel_box.stl` | Box, druckfertig |
 | `gehaeuse/klingel_deckel.stl` | Deckel, druckfertig (liegt mit der Platte nach unten) |

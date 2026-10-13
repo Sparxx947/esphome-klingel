@@ -25,6 +25,10 @@ Kennzeichnung: **belegt** = in den Projektnotizen/anderen ESP-Projekten tatsäch
 | 16 | Event `gedrueckt` erscheint erst nach dem OFF des Binärsensors | nur Ausgabe des Log-Clients (siehe unten) | nichts – in HA kommt das Event beim Drücken | **geklärt** 11.10. |
 | 17 | Kanal reagiert nicht, Diodentest zeigt „OL“ oder falsche Werte | Minilötplatine hat **einzelne Lötpunkte ohne Leiterbahnen** – Verbindung nicht hergestellt (11.10. fehlten Gegendiode ↔ Pin 1/Pin 2, Widerstand ↔ Pin 1, Pin 2 ↔ Rückleiter) | alle Verbindungen auf der Lötseite mit Draht/Zinnbrücke herstellen, je Kanal Diodentest (1,08 V / 0,60 V) | belegt (11.10.) |
 | 18 | Tischtest: keine Erkennung mit 18650-Shield als Quelle | Shield (Powerbank-Platine) schaltet bei ~8 mA Last den Ausgang vermutlich nicht ein (nicht weiter untersucht) | nackte 18650-Zelle oder Labornetzteil nehmen | belegt (11.10.), Ursache vermutet |
+| 19 | Messwerte ergeben keinen Sinn (z. B. negativer Wert „auf AC“, Ruhe 0 V / Druck 0,3 V) | Multimeter auf dem falschen Bereich (DC statt AC) | Bereich am bekannten Anker prüfen (Trafo 2–4 auf V~ = 8 V), siehe unten | **belegt** (12.10.) |
+| 20 | Gong läutet normal, PC817-Abgriff erkennt nichts – an keinem Trafo-Pol | Gong ist ein **Batteriegong mit Kontakteingang**; der Trafo ist nicht im Gong-Kreis, durch die LED fließt nie Strom | Gong ansehen (Batterie? nur 2 Drähte?), DC an den Gong-Klemmen messen; Abgriff mit MOSFET (2N7000 + 1 MΩ) statt Optokoppler | **belegt** (12.10.), Umbau geplant |
+| 21 | Einzelne Treffer direkt nach dem Anklemmen, oft mehrere Etagen gleichzeitig | **Anklemmstöße**, kein Tastendruck | nicht als Funktionsnachweis werten; nach dem Anklemmen erst mehrere echte Drücke je Etage prüfen | **belegt** (12.10.) |
+| 22 | Event kommt in HA an, `binary_sensor.klingel_*_gedruckt` zeigt dabei nie „on“ | **ungeklärt** | nach dem Umbau auf 2N7000 erneut prüfen | beobachtet (12.10.), offen |
 
 ---
 
@@ -100,8 +104,30 @@ Geprüft wurde nach der HA-Adoption anhand der HA-Historie (Tabelle oben).
 
 ---
 
+## 19. Messwerte ergeben keinen Sinn
+
+**Belegt am 12.10.2026.** Beim Einbautest stand das Multimeter bei allen ersten Werten (0,3 V, −0,6 V, −0,634 V) auf
+**DC**, obwohl Wechselspannung gemessen werden sollte. Daraus wurden zwei falsche Erklärungen abgeleitet (Gegendiode
+klemmt den Abfragekreis; 0,6 V sei die Abfragespannung des Gongs). Aufgeklärt hat es erst der Gegencheck an einem
+Punkt mit **bekannter** Spannung: Trafo Klemme 2–4 auf AC = 8 V.
+
+| Anzeichen | Bedeutung |
+|---|---|
+| Minuszeichen bei vermeintlicher AC-Messung | Bereich ist DC – AC-Anzeigen haben kein Vorzeichen |
+| Werte im Bereich weniger hundert Millivolt an einer „8–12-V-Anlage“ | Bereich oder Messpunkt falsch |
+| Spannung **steigt** beim Drücken, statt auf ~0 zu fallen | gemessene Ader ist nicht die vom Taster geschaltete |
+
+Zweite, schwerere Lehre: Vor dem Entwurf eines Abgriffs **das Gerät am anderen Ende ansehen** (Foto, Typenschild,
+Batterie?). Die Annahme „der Trafo treibt den Gong“ war nie gemessen – siehe Nr. 20 und
+[einmessen.md 0](einmessen.md#0-messbereich-und-gerät-am-anderen-ende-zuerst-prüfen).
+
+---
+
 ## Gong wird leiser oder klingelt nicht mehr
 
 Nicht erwartet: Die drei Abgriffe ziehen je ~10 mA, der Trafo liefert 8 VA (~1 A bei 8 V). Tritt es trotzdem auf:
 Abgriff abklemmen und prüfen, ob beim Anklemmen eine bestehende Verbindung gelöst oder eine Ader falsch angeklemmt
 wurde (z. B. Etagenader direkt auf den Rückleiter → Gong dauerhaft überbrückt bzw. Kurzschluss beim Drücken).
+
+Bei den hier verbauten **Batteriegongs** gilt zusätzlich: Wer Plus und Minus einer Gong-Schleife verbindet (oder zwei
+Plus-Adern), löst den Gong aus bzw. hält ihn ausgelöst – genau das, was der Taster tut.

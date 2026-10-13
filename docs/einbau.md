@@ -5,6 +5,12 @@
 Reihenfolge: **A** Platine aufbauen → **B** Inbetriebnahme am Tisch → **C** Einbau an der Abzweigdose → **D** Abnahmetest
 → **E** Home Assistant. Voraussetzung ist die Aderzuordnung aus [einmessen.md](einmessen.md#1-adern-zuordnen).
 
+> **Stand 13.10.2026:** Diese Anleitung beschreibt die **PC817-Variante**. Der Einbau damit ist am 12.10. gescheitert
+> (Batteriegongs mit Kontakteingang, siehe [verlauf.md](verlauf.md)). Für den geplanten Umbau auf 2N7000 gelten
+> [`plaene/klingel-schaltplan-mosfet.pdf`](../plaene/klingel-schaltplan-mosfet.pdf) und
+> [einmessen.md 0](einmessen.md#0-messbereich-und-gerät-am-anderen-ende-zuerst-prüfen); eine eigene Einbauanleitung
+> dafür folgt nach dem Umbau.
+
 ---
 
 ## A. Platine aufbauen

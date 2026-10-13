@@ -11,7 +11,48 @@ Notizen bzw. wurden noch nicht am Gerät nachvollzogen.
 
 ---
 
+## 0. Messbereich und Gerät am anderen Ende zuerst prüfen
+
+**Lehre aus dem Einbautest am 12.10.2026.** Rund zwei Stunden lang wurden aus Messwerten Schlüsse gezogen, die auf zwei
+ungeprüften Grundlagen standen:
+
+1. Das Multimeter stand auf **DC**, gemessen werden sollte Wechselspannung. Ein Wert von **−0,6 V „auf V~“** hätte
+   sofort auffallen müssen: Eine AC-Anzeige hat **kein Vorzeichen**.
+2. Der ganze Abgriff setzte voraus, dass der **Trafo den Gong treibt**. Dass jede Etage einen **Batteriegong mit
+   Kontakteingang** hat, zeigte erst ein Foto des Gongs. Die Annahme „klassische Anlage“ war nie gemessen worden.
+
+Deshalb jetzt vor jeder Messreihe:
+
+| Schritt | Wie | Warum |
+|---|---|---|
+| Messbereich am **bekannten Anker** prüfen | z. B. Trafo Klemme 2–4 auf V~ → muss ~8 V zeigen; für DC eine Batterie mit bekannter Spannung | ein Messwert ohne gesicherten Bereich ist keine Messung |
+| Negativer Wert bei „AC“ | sofort den Bereich anzweifeln | AC-Anzeigen sind vorzeichenlos – ein Minus bedeutet DC-Bereich |
+| **Gerät am anderen Ende ansehen**, bevor ein Abgriff entworfen wird | Foto des Gongs/Verbrauchers, Typenschild, Batteriefach, Zahl der Drähte | die Bauart (Trafo-Gong oder Batteriegong mit Kontakteingang) entscheidet über die ganze Schaltung |
+| Treffer nur direkt nach dem Anklemmen, mehrere Kanäle gleichzeitig | als **Anklemmstoß** werten, nicht als Tastendruck | ein echter Druck betrifft genau eine Etage |
+
+**Für den Umbau auf 2N7000** heißt das konkret (Messung noch offen):
+
+1. Multimeter auf **V⎓** (DC), Bereich an einer Batterie mit bekannter Spannung prüfen.
+2. In der Abzweigdose je Etage die **zwei Adern mit Gong-Spannung** suchen (Etage 1: ~9 V in Ruhe; Etage 2 erwartet
+   ~4,5 V, *ungemessen*).
+3. Schwarze Spitze an Ader A, rote an Ader B: **+** Wert → B ist Plus (Signal), A ist Minus; **−** Wert → umgekehrt.
+4. Prüfen, ob die Minus-Seiten der drei Etagen verbunden werden dürfen (der Plan setzt das voraus). Nie zwei
+   Plus-Adern verbinden und nie Plus mit Minus – das löst den Gong aus.
+5. Ruhespannung je Etage notieren: unter ~3,5 V reicht der 2N7000 nicht sicher → BC547 vorgesehen.
+
+| Etage | Ader Plus | Ader Minus | Ruhespannung V⎓ | beim Drücken |
+|---|---|---|---|---|
+| Erdgeschoss | … | … | … V | … V |
+| Etage 1 | … | … | ~9 V (an den Gong-Klemmen gemessen) | … V |
+| Etage 2 | … | … | … V | … V |
+
+---
+
 ## 1. Adern zuordnen
+
+> **Überholt (12.10.):** Die folgende Anleitung geht davon aus, dass der Trafo den Gong treibt (V~-Messung gegen die
+> 5er-WAGO). Das trifft hier nicht zu – die Gongs sind Batteriegongs. Messergebnisse 12.10. siehe
+> [verlauf.md](verlauf.md); für den Umbau gilt Abschnitt 0. Der Text bleibt zur Nachvollziehbarkeit stehen.
 
 **Termin: offen.** Geplant waren Fr 09.10. und Sa 10.10. – die Messung hat noch nicht stattgefunden (Stand 11.10.).
 Für die Litzen zur Platine sind die Farben schon festgelegt: grau = Gong-Rückleiter, gelb = Erdgeschoss,
@@ -50,6 +91,8 @@ Gegenprobe: Kreppband-Beschriftung lesen, falls möglich.
 ---
 
 ## 2. Gong-Spannung bestimmen
+
+> **Entfällt (12.10.):** Die Gongs hängen nicht am Trafo. Abschnitt 2 und 3 gelten nur für die PC817-Variante.
 
 Der Hager ST303 liefert **8 V zwischen Klemme 2–4** und **12 V zwischen 2–8**. Welche der Gong nutzt, ist offen.
 Die Messung aus Schritt 1 zeigt es direkt (~8 V oder ~12 V effektiv; leerlaufend kann sie etwas höher liegen).
