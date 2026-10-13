@@ -25,6 +25,10 @@ Labels: **verified** = actually occurred in the project notes/other ESP projects
 | 16 | Event `gedrueckt` appears only after the OFF of the binary sensor | only the log client's output (see below) | nothing – in HA the event arrives on press | **resolved** 11.10. |
 | 17 | Channel doesn't respond, diode test shows "OL" or wrong values | the mini solder board has **individual pads without tracks** – connection not made (on 11.10. reverse diode ↔ pin 1/pin 2, resistor ↔ pin 1, pin 2 ↔ return conductor were missing) | make all connections on the solder side with wire/solder bridges, diode test per channel (1.08 V / 0.60 V) | verified (11.10.) |
 | 18 | Bench test: no detection with an 18650 shield as source | the shield (power-bank board) presumably does not switch its output on at ~8 mA load (not investigated further) | use a bare 18650 cell or a lab power supply | verified (11.10.), cause suspected |
+| 19 | Readings make no sense (e.g. negative value "on AC", 0 V at rest / 0.3 V when pressed) | multimeter on the wrong range (DC instead of AC) | check the range on a known reference (transformer 2–4 on V~ = 8 V), see below | **verified** (12.10.) |
+| 20 | Chime rings normally, PC817 tap detects nothing – on any transformer pole | the chime is a **battery chime with a contact input**; the transformer is not in the chime circuit, no current ever flows through the LED | look at the chime (battery? only 2 wires?), measure DC at the chime terminals; tap with a MOSFET (2N7000 + 1 MΩ) instead of an optocoupler | **verified** (12.10.), rebuild planned |
+| 21 | Single hits right after connecting, often several floors at once | **connection transients**, not a button press | do not count as proof of function; after connecting, check several real presses per floor | **verified** (12.10.) |
+| 22 | Event arrives in HA, but `binary_sensor.klingel_*_gedruckt` never shows "on" | **unexplained** | check again after the rebuild with 2N7000 | observed (12.10.), open |
 
 ---
 
@@ -104,9 +108,31 @@ Checked after HA adoption using the HA history (table above).
 
 ---
 
+## 19. Readings make no sense
+
+**Verified on 12.10.2026.** During the installation test the multimeter was set to **DC** for all first readings
+(0.3 V, −0.6 V, −0.634 V), although AC voltage was meant to be measured. Two wrong explanations were derived from that
+(reverse diode clamps the sensing circuit; 0.6 V is the chime's sensing voltage). Only the cross-check at a point with
+a **known** voltage cleared it up: transformer terminals 2–4 on AC = 8 V.
+
+| Sign | Meaning |
+|---|---|
+| Minus sign on a supposed AC measurement | the range is DC – AC displays have no sign |
+| Readings of a few hundred millivolts on an "8–12 V system" | wrong range or wrong measuring point |
+| Voltage **rises** when pressed instead of dropping to ~0 | the measured wire is not the one switched by the button |
+
+Second, more serious lesson: before designing a tap, **look at the device at the other end** (photo, rating plate,
+battery?). The assumption "the transformer drives the chime" had never been measured – see no. 20 and
+[einmessen.en.md 0](einmessen.en.md#0-check-meter-range-and-the-device-at-the-other-end-first).
+
+---
+
 ## Chime gets quieter or stops ringing
 
 Not expected: the three taps draw ~10 mA each, the transformer delivers 8 VA (~1 A at 8 V). If it happens anyway:
 disconnect the tap and check whether an existing connection was loosened or a wire was clamped incorrectly when
 connecting (e.g. floor wire directly onto the return conductor → chime permanently bridged or short circuit when
 pressing).
+
+With the **battery chimes** installed here, additionally: connecting plus and minus of a chime loop (or two plus
+wires) triggers the chime or keeps it triggered – exactly what the button does.

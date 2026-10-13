@@ -6,6 +6,12 @@ Sequence: **A** build the board → **B** commissioning on the bench → **C** i
 **D** acceptance test → **E** Home Assistant. Prerequisite is the wire assignment from
 [einmessen.en.md](einmessen.en.md#1-assigning-the-wires).
 
+> **Status 13.10.2026:** this guide describes the **PC817 variant**. Installation with it failed on 12.10. (battery
+> chimes with a contact input, see [verlauf.en.md](verlauf.en.md)). For the planned rebuild with 2N7000 see
+> [`plaene/klingel-schaltplan-mosfet.pdf`](../plaene/klingel-schaltplan-mosfet.pdf) and
+> [einmessen.en.md 0](einmessen.en.md#0-check-meter-range-and-the-device-at-the-other-end-first); a separate
+> installation guide for it will follow after the rebuild.
+
 ---
 
 ## A. Building the board

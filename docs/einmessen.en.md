@@ -11,7 +11,49 @@ form or have not yet been reproduced on the device.
 
 ---
 
+## 0. Check meter range and the device at the other end first
+
+**Lesson from the installation test on 12.10.2026.** For about two hours conclusions were drawn from readings that
+rested on two unverified foundations:
+
+1. The multimeter was set to **DC**, while AC voltage was meant to be measured. A reading of **−0.6 V "on V~"** should
+   have stood out immediately: an AC display has **no sign**.
+2. The whole tap assumed that the **transformer drives the chime**. That each floor has a **battery chime with a
+   contact input** only came out with a photo of the chime. The assumption "conventional system" had never been
+   measured.
+
+Therefore, before every measurement series now:
+
+| Step | How | Why |
+|---|---|---|
+| Check the range on a **known reference** | e.g. transformer terminals 2–4 on V~ → must show ~8 V; for DC a battery of known voltage | a reading without a verified range is not a measurement |
+| Negative value on "AC" | question the range immediately | AC displays are unsigned – a minus means DC range |
+| **Look at the device at the other end** before designing a tap | photo of the chime/load, rating plate, battery compartment, number of wires | the type (transformer chime or battery chime with contact input) decides the whole circuit |
+| Hits only right after connecting, several channels at once | count as a **connection transient**, not as a button press | a real press affects exactly one floor |
+
+**For the rebuild with 2N7000** this means (measurement still open):
+
+1. Multimeter on **V⎓** (DC), check the range on a battery of known voltage.
+2. In the junction box find the **two wires carrying chime voltage** per floor (floor 1: ~9 V at rest; floor 2
+   expected ~4.5 V, *unmeasured*).
+3. Black probe on wire A, red on wire B: **+** value → B is plus (signal), A is minus; **−** value → the other way round.
+4. Check whether the minus sides of the three floors may be joined (the plan assumes so). Never join two plus wires
+   and never plus with minus – that triggers the chime.
+5. Note the rest voltage per floor: below ~3.5 V the 2N7000 is not reliable → BC547 intended.
+
+| Floor | Plus wire | Minus wire | Rest voltage V⎓ | when pressed |
+|---|---|---|---|---|
+| Ground floor | … | … | … V | … V |
+| Floor 1 | … | … | ~9 V (measured at the chime terminals) | … V |
+| Floor 2 | … | … | … V | … V |
+
+---
+
 ## 1. Assigning the wires
+
+> **Superseded (12.10.):** the following procedure assumes that the transformer drives the chime (V~ measurement
+> against the 5-way WAGO). That is not the case here – the chimes are battery chimes. Measurement results of 12.10.
+> see [verlauf.en.md](verlauf.en.md); for the rebuild, section 0 applies. The text is kept for traceability.
 
 **Date: open.** Fri 09.10. and Sat 10.10. were planned – the measurement has not taken place yet (as of 11.10.).
 The colours of the wires to the board are already fixed: grey = chime return conductor, yellow = ground floor,
@@ -52,6 +94,8 @@ Cross-check: read the masking-tape labels, if possible.
 ---
 
 ## 2. Determining the chime voltage
+
+> **Not applicable (12.10.):** the chimes are not powered by the transformer. Sections 2 and 3 only apply to the PC817 variant.
 
 The Hager ST303 delivers **8 V between terminals 2–4** and **12 V between 2–8**. Which one the chime uses is open.
 The measurement from step 1 shows it directly (~8 V or ~12 V RMS; at no load it can be somewhat higher).
