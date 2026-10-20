@@ -6,6 +6,10 @@ A doorbell has no measured values in the strict sense. "Calibrating" here means:
 which floor**, determining the **chime voltage**, checking the component values against it, testing components and board
 **before** installation, and checking filters and Wi-Fi after installation.
 
+> **Status 20.10.2026:** sections 2–6 refer to the historical PC817 variant. For the BC517 circuit, section 0 (meter
+> range, device at the other end) and the measuring sheet
+> [`plaene/klingel-messblatt-bc517.pdf`](../plaene/klingel-messblatt-bc517.pdf) apply.
+
 Values from the project notes are verified; steps marked *(suggestion)* or *(unverified)* are not in the notes in this
 form or have not yet been reproduced on the device.
 

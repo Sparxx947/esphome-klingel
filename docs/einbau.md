@@ -5,11 +5,23 @@
 Reihenfolge: **A** Platine aufbauen → **B** Inbetriebnahme am Tisch → **C** Einbau an der Abzweigdose → **D** Abnahmetest
 → **E** Home Assistant. Voraussetzung ist die Aderzuordnung aus [einmessen.md](einmessen.md#1-adern-zuordnen).
 
-> **Stand 13.10.2026:** Diese Anleitung beschreibt die **PC817-Variante**. Der Einbau damit ist am 12.10. gescheitert
-> (Batteriegongs mit Kontakteingang, siehe [verlauf.md](verlauf.md)). Für den geplanten Umbau auf 2N7000 gelten
-> [`plaene/klingel-schaltplan-mosfet.pdf`](../plaene/klingel-schaltplan-mosfet.pdf) und
-> [einmessen.md 0](einmessen.md#0-messbereich-und-gerät-am-anderen-ende-zuerst-prüfen); eine eigene Einbauanleitung
-> dafür folgt nach dem Umbau.
+> **Stand 20.10.2026:** Die Abschnitte A–D unten beschreiben die **historische PC817-Variante** (Einbau am 12.10.
+> gescheitert, Batteriegongs). Für die aktuelle Schaltung mit **BC517** gilt der folgende Kurzablauf.
+
+## BC517: Aufbau und Abnahme (20.10.2026)
+
+1. Platine nach [`plaene/klingel-platine-bc517.pdf`](../plaene/klingel-platine-bc517.pdf) bestücken; jeden BC517 vorher
+   im Diodentest prüfen (rot an Basis: B→C ~0,6–0,75 V, B→E ~1,1–1,4 V, umgekehrt OL). Brücken auf der Lötseite mit
+   abgeschnittenen Widerstandsbeinen.
+2. Ohne Anschluss: Durchgang nur innerhalb der Netze, Diodentest an den fertigen Kanälen (siehe Plan, Seite 1).
+3. **Zuerst nur das Erdgeschoss** anklemmen (gelb Kl.1, grau Kl.2, schwarz G): Der Gong muss **stumm** bleiben und die
+   Schleifenspannung darf sich nicht ändern. Dann klingeln → Gong läutet, Pin D5 geht HIGH.
+4. Etage 1 und 2 dazu. Klingelt ein Gong dauerhaft → sofort graue Leitung abklemmen.
+5. Klappt etwas nicht: [`plaene/klingel-messblatt-bc517.pdf`](../plaene/klingel-messblatt-bc517.pdf), dann
+   [`plaene/klingel-durchgang-bc517.pdf`](../plaene/klingel-durchgang-bc517.pdf) und
+   [Fehlersuche Nr. 23](fehlersuche.md#23-bc517-kanal-leitet-in-ruhe-nicht).
+6. Firmware aus `firmware/klingel.yaml` (BC517-Stand) per OTA; Abnahme: jede Etage einmal, mit ein paar Sekunden
+   Abstand → je genau ein Event, keine andere Etage ausgelöst. **Am 20.10. bestanden.**
 
 ---
 

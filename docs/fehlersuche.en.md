@@ -26,9 +26,11 @@ Labels: **verified** = actually occurred in the project notes/other ESP projects
 | 17 | Channel doesn't respond, diode test shows "OL" or wrong values | the mini solder board has **individual pads without tracks** – connection not made (on 11.10. reverse diode ↔ pin 1/pin 2, resistor ↔ pin 1, pin 2 ↔ return conductor were missing) | make all connections on the solder side with wire/solder bridges, diode test per channel (1.08 V / 0.60 V) | verified (11.10.) |
 | 18 | Bench test: no detection with an 18650 shield as source | the shield (power-bank board) presumably does not switch its output on at ~8 mA load (not investigated further) | use a bare 18650 cell or a lab power supply | verified (11.10.), cause suspected |
 | 19 | Readings make no sense (e.g. negative value "on AC", 0 V at rest / 0.3 V when pressed) | multimeter on the wrong range (DC instead of AC) | check the range on a known reference (transformer 2–4 on V~ = 8 V), see below | **verified** (12.10.) |
-| 20 | Chime rings normally, PC817 tap detects nothing – on any transformer pole | the chime is a **battery chime with a contact input**; the transformer is not in the chime circuit, no current ever flows through the LED | look at the chime (battery? only 2 wires?), measure DC at the chime terminals; tap with a MOSFET (2N7000 + 1 MΩ) instead of an optocoupler | **verified** (12.10.), rebuild planned |
+| 20 | Chime rings normally, PC817 tap detects nothing – on any transformer pole | the chime is a **battery chime with a contact input**; the transformer is not in the chime circuit, no current ever flows through the LED | look at the chime (battery? only 2 wires?), measure DC at the chime terminals; tap with BC517 + 9.1 MΩ instead of an optocoupler | **verified** (12.10.), rebuilt 20.10. |
 | 21 | Single hits right after connecting, often several floors at once | **connection transients**, not a button press | do not count as proof of function; after connecting, check several real presses per floor | **verified** (12.10.) |
-| 22 | Event arrives in HA, but `binary_sensor.klingel_*_gedruckt` never shows "on" | **unexplained** | check again after the rebuild with 2N7000 | observed (12.10.), open |
+| 22 | Event arrives in HA, but `binary_sensor.klingel_*_gedruckt` never shows "on" | unexplained with the PC817 build | no longer seen with BC517: event and binary sensor arrive together | observed (12.10.), **resolved** 20.10. |
+| 23 | BC517 build: all channels HIGH at idle (old firmware: "off", new: permanently "pressed"), no event | base gets no current (Kl.1/Kl.2 swapped, jumper wire → R → base missing), emitter not at GND, BC517 rotated – or the pin stays above the LOW threshold | work through `plaene/klingel-messblatt-bc517.pdf` and the continuity check `plaene/klingel-durchgang-bc517.pdf`, see below | **verified** (20.10.), exact cause not recorded |
+| 24 | "Klingelbatterie leer" reports | one channel HIGH for more than 30 s: chime battery flat, loose wire or open base path | check the chime battery and measure Kl.1 ↔ grey | derived (sensor since 20.10.) |
 
 ---
 
@@ -124,6 +126,30 @@ a **known** voltage cleared it up: transformer terminals 2–4 on AC = 8 V.
 Second, more serious lesson: before designing a tap, **look at the device at the other end** (photo, rating plate,
 battery?). The assumption "the transformer drives the chime" had never been measured – see no. 20 and
 [einmessen.en.md 0](einmessen.en.md#0-check-meter-range-and-the-device-at-the-other-end-first).
+
+---
+
+## 23. BC517 channel does not conduct at idle
+
+**Verified on 20.10.2026** (first connection after the rebuild, all three channels). Test order:
+
+| Step | Measurement (multimeter V⎓, black named first) | Expected | If not |
+|---|---|---|---|
+| 0 | G → 3V3 at the D1 | +3.2 … +3.4 V | check range/test leads – only then continue |
+| 1 | grey → Kl.1 wire of the floor | **plus**, battery voltage (here 3.1 / 9.47 / 5.5 V) | negative: Kl.1/Kl.2 swapped, base gets minus |
+| 2 | G → BC517 middle leg (base) | +0.9 … +1.4 V | ≈ 0 V: wire → R → base open; ≈ value of 1: emitter not at GND or BC517 rotated |
+| 3 | G → pin D5/D6/D7 at idle | below 0.8 V | 0.8–2.5 V: margin (see below); ≈ 3.3 V: collector jumper missing |
+| 4 | continuity G ↔ grey, G ↔ GND rail, G ↔ each emitter | beeps | re-solder the jumper |
+
+**Margin (derived, not measured):** a Darlington has a saturation voltage of ~0.6–0.9 V (the base-emitter voltage of the
+second transistor remains). The ESP8266 only reliably reads LOW below ~0.25 × VDD ≈ 0.8 V. If the pin sits just above
+that at idle, the D1 reads "HIGH". A fix would be a single NPN instead of a Darlington (needs more base current, i.e. a
+smaller base resistor) or an external pull-up with more current.
+
+**Measuring trap 20.10.:** "G against wire" gave −2 / −2 / −4 V although grey and G were verifiably connected and
+"grey against wire" showed +3.1 / +9.47 / +5.5 V. The conclusion "G is floating" was wrong; the continuity check
+disproved it. Where the negative values came from is unexplained. **Measure voltages against the return (grey), not
+against G, and prove connections with a continuity test.**
 
 ---
 

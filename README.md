@@ -3,23 +3,22 @@
 # Türklingel → Home Assistant (ESPHome, Wemos D1 mini)
 
 Die vorhandene, klassische Klingelanlage im Haus bekommt einen „Mithörer“: Ein Wemos D1 mini erkennt über
-drei Optokoppler, an **welcher Etage** jemand klingelt, und meldet das als `event` (device_class `doorbell`) an
+drei Darlington-Transistoren (**BC517**), an **welcher Etage** jemand klingelt, und meldet das als `event` (device_class `doorbell`) an
 Home Assistant. Der Gong klingelt **unverändert weiter** – der ESP greift nur Kleinspannung ab und schaltet nichts.
 
-> **⚠ Stand 13.10.2026: Die Optokoppler-Variante (PC817) funktioniert in diesem Haus nicht.** Der Einbautest am
-> 12.10. hat gezeigt: Jede Etage hat einen **eigenen batteriebetriebenen Gong mit Kontakteingang** (Etage 1: 9 V DC an
-> den Gong-Klemmen in Ruhe). Der Taster schließt nur die Gong-Schleife kurz, der Klingeltrafo ist am Gong-Kreis **nicht
-> beteiligt** – durch die Optokoppler-LED fließt also nie Strom. Geplant ist ein Umbau auf **3 × 2N7000 (MOSFET) +
-> 3 × 1 MΩ** ([`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf)); die Transistoren kommen
-> am 14.10. Vorher muss **je Etage die Polarität (Plus/Minus) der Gong-Adern** in der Abzweigdose gemessen werden.
-> **Die Firmware ist noch unverändert** (PC817-Stand). Die Beschreibung der PC817-Schaltung unten bleibt zur
-> Nachvollziehbarkeit stehen. Einzelheiten: [docs/verlauf.md](docs/verlauf.md), [Umbau auf 2N7000](#umbau-auf-2n7000-geplant).
+> **✅ Stand 20.10.2026: läuft.** Jede Etage hat einen **eigenen batteriebetriebenen Gong mit Kontakteingang**; der
+> Taster schließt nur die Gong-Schleife kurz (Optokoppler-Abgriff deshalb ungeeignet, siehe [Verlauf](docs/verlauf.md)).
+> Seit dem 20.10. hängt je Etage ein **BC517 mit 9,1 MΩ Basiswiderstand** an der Schleife: In Ruhe liegt die
+> Batteriespannung an, der BC517 leitet, der Eingang ist **LOW**; beim Drücken bricht die Spannung zusammen → **HIGH**.
+> Abnahme am 20.10.: alle drei Etagen je genau **ein** Event, kein Übersprechen. Plan:
+> [`plaene/klingel-platine-bc517.pdf`](plaene/klingel-platine-bc517.pdf), Einzelheiten:
+> [Schaltung BC517](#schaltung-bc517-seit-20102026). Die PC817-Abschnitte weiter unten sind **historisch**.
 
 | | |
 |---|---|
 | Projektkürzel (Werkstattbuch) | **K1 Türklingel · 3 Etagen mithören** |
 | Board | Wemos D1 mini V3.0.0 (ESP8266), „D1 #2“ aus dem Bestand |
-| Erkennung | 3 × Optokoppler **PC817C** + je eine antiparallele Gegendiode **1N4007** + 1 kΩ Vorwiderstand – **funktioniert hier nicht** (Batteriegongs), geplant: 3 × **2N7000** + 3 × 1 MΩ |
+| Erkennung | 3 × **BC517** (Darlington, TO-92) + 3 × **9,1 MΩ** an den Gong-Schleifen (seit 20.10.2026). Historisch: PC817C + 1N4007 + 1 kΩ (funktioniert bei Batteriegongs nicht), 2N7000 (fürs Erdgeschoss mit ~3 V zu knapp) |
 | Abgriff | Abzweigdose oben links über dem linken Kleinverteiler im Treppenhaus (dort laufen **alle** Klingeladern zusammen, nur Kleinspannung) |
 | Klingeltrafo | Hager ST303, 8 VA, PRI 230 V (Klemmen 1/7), SEC 8 V (2–4) / 12 V (2–8), rechter Verteiler, Reihe 3, Platz 25/26 |
 | Stromversorgung D1 | USB-Netzteil an einer Schuko-Steckdose im linken Verteiler („SNS016“, Reihe 5, Platz 49–52) – **nicht** aus dem Klingeltrafo |
@@ -35,13 +34,25 @@ Hinweise für den Nachbau in einem anderen Haus:
 - **HA-Paket:** In `ha/klingel.yaml` die Benachrichtigungsdienste `notify.mobile_app_handy_*` durch die eigenen
   Handy-Dienste ersetzen, ebenso die Entitäts-IDs der Kamera (`camera.haustuer_standardauflosung`) und der Wandpanels
   (`switch.wandpanel_*`, `button.wandpanel_*`, `notify.wandpanel_*`).
-- **Klingeltrafo zuerst messen:** Die Gong-Spannung (hier 8 oder 12 V AC) vor dem Löten mit dem Multimeter bestimmen
-  und Vorwiderstand und Gegendiode danach prüfen (siehe [docs/einmessen.md](docs/einmessen.md)).
-- **Vorher den Gong selbst ansehen:** Hat er eine eigene Batterie und nur zwei Drähte zum Taster (Kontakteingang),
-  treibt der Trafo ihn nicht – dann passt die Optokoppler-Schaltung nicht, sondern die MOSFET-Variante
-  ([Umbau auf 2N7000](#umbau-auf-2n7000-geplant)). Genau das ist hier am 12.10. passiert.
+- **Zuerst den Gong ansehen:** Hat er eine eigene Batterie und nur zwei Drähte zum Taster (Kontakteingang), passt
+  die BC517-Schaltung dieses Repos. Wird der Gong dagegen vom Klingeltrafo getrieben (Wechselspannung am Gong beim
+  Drücken), passt die historische Optokoppler-Variante (PC817 + Gegendiode).
+- **Polarität je Etage messen** (Multimeter auf V⎓, vorher an einem bekannten Punkt prüfen): Die Ader an der Basis
+  (hier „Kl.1“) muss **Plus** gegen den gemeinsamen Rückleiter (grau) sein. Siehe
+  [`plaene/klingel-messblatt-bc517.pdf`](plaene/klingel-messblatt-bc517.pdf).
 
-## Prinzip
+## Prinzip (BC517, seit 20.10.2026)
+
+Jeder Gong legt in Ruhe seine Batteriespannung auf die Taster-Schleife (hier: Erdgeschoss ~3,1 V, Etage 1 ~9,5 V,
+Etage 2 ~5,5 V, gemessen 20.10.). Der Taster schließt die Schleife kurz, der Gong erkennt das und läutet. Über
+**9,1 MΩ** fließt aus der Schleife ein Basisstrom von nur etwa 0,2–1 µA in einen **BC517** (Darlington, Verstärkung
+≥ 30 000) – genug, um den Eingang des D1 mini gegen den internen Pull-up auf LOW zu ziehen, und so wenig, dass der
+Gong ihn nicht als Tastendruck wertet. Beim Drücken fällt die Schleifenspannung auf ~0 V, der BC517 sperrt, der
+Eingang geht auf **HIGH** → Event `gedrueckt`.
+
+Der Emitter aller drei BC517 und der gemeinsame Rückleiter (grau = alle Kl.2) liegen an **G** des D1 mini.
+
+## Prinzip (PC817, historisch – funktioniert hier nicht)
 
 Drückt jemand unten einen Klingelknopf, liegt am Gong dieser Etage die Wechselspannung des Klingeltrafos (8 oder 12 V AC)
 an. Parallel zum Gong hängt die LED eines PC817 (über 1 kΩ). Der Optokoppler trennt die Klingel galvanisch vom ESP;
@@ -59,21 +70,24 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 
 ---
 
-## Status (Stand 13.10.2026)
+## Status (Stand 20.10.2026)
 
-> **Kurz:** Gerät geflasht, in HA und im Builder. Der Einbau an der Abzweigdose am 12.10. ist
-> **gescheitert**: Die Gongs sind **Batteriegongs mit Kontakteingang**, der PC817-Abgriff bekommt nie Strom. Die Platine
-> ist abgeklemmt (graue Litze ab), die Gongs laufen normal. **Nächster Schritt:** Polarität je Etage messen, dann Umbau
-> auf 2N7000 (Teile kommen 14.10.) und Firmware anpassen. **Firmware ist noch nicht angepasst.**
+> **Kurz:** In Betrieb. Platine mit 3 × BC517 + 9,1 MΩ an der Abzweigdose angeschlossen, Firmware per OTA aus dem
+> ESPHome Builder umgestellt (nicht invertiert, 30/100 ms Entprellung, Sensor „Klingelbatterie leer“). Abnahme am
+> 20.10.: je Etage ein Druck → genau ein Event (gedrückt 0,31 / 0,37 / 0,34 s), keine andere Etage ausgelöst.
+> **Offen:** HA-Paket (Push, Panels, Alexa) anlegen.
 
 | Bereich | Stand | Datum |
 |---|---|---|
+| **Abnahme BC517** | ✔ **bestanden**: Erdgeschoss, Etage 1, Etage 2 nacheinander gedrückt → je genau ein Event, Binärsensor 0,31–0,37 s EIN, kein Übersprechen, „Klingelbatterie leer“ AUS | 20.10. |
+| **Firmware BC517** | ✔ per OTA (ESPHome Builder): `inverted: false`, `delayed_on: 30ms` / `delayed_off: 100ms`, Template-Sensor „Klingelbatterie leer“ (ein Kanal > 30 s gedrückt) | 20.10. |
+| **Platine BC517** | ✔ gelötet nach [`plaene/klingel-platine-bc517.pdf`](plaene/klingel-platine-bc517.pdf); beim ersten Anschluss leitete kein Kanal (Ursache beim Nachprüfen behoben, nicht im Einzelnen festgehalten), danach alle drei ✔ | 20.10. |
+| Polarität der Gong-Adern je Etage (DC) | ✔ gemessen: Kl.1 gegen grau Erdgeschoss **+3,1 V**, Etage 1 **+9,47 V**, Etage 2 **+5,5 V** | 20.10. |
+| Gong-Belegung | ✔ je Etage Klemme 1 = Gong-Ader (Plus), Klemme 2 = Rückkanal; Erdgeschoss 2 × AA (~3 V) → 2N7000 zu knapp → **BC517** | 14.10. |
 | **Gong-Typ** | **geklärt**: je Etage ein eigener Batteriegong mit Kontakteingang. Etage 1: elektronischer Gong mit 9-V-Block, Lautsprecher, nur 2 Drähte, **9 V DC** an den Klemmen in Ruhe (gemessen). Erdgeschoss: vermutlich ebenfalls 9 V (*ungeprüft*). Etage 2: anderer Gong mit 3 × Babyzelle (C/LR14) = 4,5 V (*Spannung an den Adern ungemessen*). Hersteller unbekannt. | 12.10. |
 | **PC817-Abgriff** | **funktioniert hier nicht** – Trafo ist nicht im Gong-Kreis, die LED bekommt keinen Strom. Einzige Treffer im Log waren Anklemmstöße. Platine abgeklemmt. | 12.10. |
-| **Umbau auf 2N7000** | **geplant**, Druckplan fertig (`plaene/klingel-schaltplan-mosfet.pdf`), Transistor-Set bestellt (Lieferung 14.10.), 1 MΩ vorhanden. Plan beruht auf einer **ungemessenen Annahme** (je Etage eigene Plus-Ader, Minus-Seiten verbindbar). | 12.10. |
-| Polarität der Gong-Adern je Etage (DC) | **offen** – Messung in der Abzweigdose vor dem Umbau | – |
-| Firmware für 2N7000 | **noch nicht angepasst** (`inverted` und Filter stammen aus der PC817-Variante, siehe [Umbau auf 2N7000](#umbau-auf-2n7000-geplant)) | – |
-| Firmware `klingel.yaml` (3 Taster, Events, Filter) | **fertig**, Filter-Reihenfolge korrigiert (`delayed_off: 200ms` vor `delayed_on: 230ms`) | 04.10. / 11.10. |
+| Umbau auf 2N7000 | **verworfen** (14.10.): Erdgeschoss hat nur ~3 V Schleifenspannung, zu knapp für die Gate-Schwelle. Ersetzt durch BC517 | 12.10. / 14.10. |
+| Firmware `klingel.yaml` PC817-Stand (historisch) | Filter `delayed_off: 200ms` vor `delayed_on: 230ms` für 50-Hz-Halbwellen – seit 20.10. ersetzt | 04.10. / 11.10. |
 | Erstflash | **erledigt** per USB mit echten Secrets (ESPHome 2026.9.1, RAM 39,0 %, Flash 40,3 %); WLAN verbunden, API-Handshake mit echtem Schlüssel ok | 11.10. |
 | Etagen-Namen / Entitäten | **fertig** (Erdgeschoss / Etage 1 / Etage 2) | 04.10. |
 | Empfänger je Etage | **fertig** (EG → Bewohner EG, Etage 1/2 → Bewohner Etage 1/2) | 06.10. |
@@ -93,7 +107,8 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 | Event `gedrueckt` erst nach dem OFF im Log | ✔ geklärt: In HA kommt das Event **beim Drücken** an (Test 11.10.: Event 49,818 s, Binärsensor EIN 49,922 s, AUS 53,588 s). Die Verzögerung war nur die Ausgabe des Log-Clients. ([Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | 11.10. |
 | HA-Paket `ha/klingel.yaml` | **Entwurf**, YAML geparst, Sperrlogik in HA getestet, **noch nicht in HA angelegt** | 04./06.10. |
 | Gehäuse | **konstruiert** (`gehaeuse/`), Druck am 11.10. gestartet (Abschluss in den Notizen nicht ausdrücklich bestätigt) | 11.10. |
-| Nebenbefund 12.10. | **ungeklärt**: Beim Einbautest kam ein Event in HA an, `binary_sensor.klingel_*_gedruckt` zeigte dabei nie „on“ | 12.10. |
+| Nebenbefund 12.10. | ✔ **erledigt**: Mit BC517 kommen Event und Binärsensor „on“ zusammen an (Event ~0,1 s vor dem Binärsensor) | 12.10. / 20.10. |
+| Einmaliges Nachläuten Erdgeschoss | **ungeklärt**: beim ersten Test am 20.10. läutete der Erdgeschoss-Gong einmal zusätzlich; bei der Abnahme nicht wieder beobachtet | 20.10. |
 
 ---
 
@@ -102,9 +117,9 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 | Teil | Menge | Bezeichnung / Typ | Bezugsquelle, ASIN, Preis | Status |
 |---|---|---|---|---|
 | Mikrocontroller | 1 | Wemos D1 mini V3.0.0 (ESP8266), „D1 #2“ | Bestand (4 × vorhanden) | vorhanden |
-| Optokoppler | 3 (+ Reserve) | PC817C, DIP-4, 50 Stück (ALLECIN) | Amazon.de, **B0CBKK6T3D**, 7,99 € | geliefert 07.10. |
-| Gegendiode | 3 | 1N4007 (alternativ 1N5819 – Erholzeit bei 50 Hz egal) aus Diodensortiment (BOJACK) | Amazon.de, **B07YK3XMQQ**, 10,99 € (gemeinsam mit Projekt Tankmessung) | geliefert 07.10. |
-| Vorwiderstand | 3 | 1 kΩ, 0,25 W reicht (~10 mA, ~0,12 W) | Widerstandssortiment (AZ-Delivery) | vorhanden, verbaut 11.10. |
+| *historisch:* Optokoppler | 3 (+ Reserve) | PC817C, DIP-4, 50 Stück (ALLECIN) | Amazon.de, **B0CBKK6T3D**, 7,99 € | geliefert 07.10. |
+| *historisch:* Gegendiode | 3 | 1N4007 (alternativ 1N5819 – Erholzeit bei 50 Hz egal) aus Diodensortiment (BOJACK) | Amazon.de, **B07YK3XMQQ**, 10,99 € (gemeinsam mit Projekt Tankmessung) | geliefert 07.10. |
+| *historisch:* Vorwiderstand | 3 | 1 kΩ, 0,25 W reicht (~10 mA, ~0,12 W) | Widerstandssortiment (AZ-Delivery) | vorhanden, verbaut 11.10. |
 | Lochraster | 1 | Minilötplatine 45 × 39 mm (gemessen 44,12 × 38,74), 5 Stück – **einzelne Lötpunkte ohne Leiterbahnen** | Amazon.de, **B073FVX29X**, 5,19 € | geliefert 09.10., gelötet 11.10. |
 | Netzteil | 1 | USB-Netzteil 5 V (Typ nicht festgelegt) für die Schuko-Steckdose im linken Verteiler | – | **ungeklärt** (Bestand?) |
 | USB-Kabel | 1 | passend zum D1 mini, Länge Steckdose → Abzweigdose | – | **ungeklärt** |
@@ -113,8 +128,9 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 | Gehäuse | 1 | Box + Deckel, `gehaeuse/klingel_box.stl` + `gehaeuse/klingel_deckel.stl` (PLA) + 4 Blechschrauben 3 × 12, Wandmontage 4 × Spax 4 | Eigendruck | konstruiert 11.10., Druck nicht bestätigt |
 | Werkzeug | – | Multimeter (geliehen; eigenes UNI-T UT139C bestellt), Lötkolben | Bestand / bestellt | vorhanden |
 | *optional:* Relaismodul | 1 | für „Gong stumm“ an D1 (GPIO5), Öffner-Kontakt | – | nur Idee, auskommentiert |
-| **Umbau 2N7000:** MOSFET | 3 | 2N7000 (TO-92) aus einem Transistor-Set mit 24 Typen (ALLECIN; enthält u. a. auch BC547) | Amazon.de, **B0C1V82313**, 9,99 € | bestellt 12.10., Lieferung 14.10. (Stückzahl je Typ nicht belegt) |
-| **Umbau 2N7000:** Gate-Widerstand | 3 | 1 MΩ | eigenes Sortiment | vorhanden |
+| **BC517:** Darlington-Transistor | 3 (10 bestellt) | BC517 (TO-92, CDIL) | reichelt | geliefert 20.10., verbaut |
+| **BC517:** Basiswiderstand | 3 (5 bestellt) | 9,1 MΩ, 1/4 W (10 MΩ war ausverkauft; 1 MΩ geht laut Rechnung auch) | reichelt | geliefert 20.10., verbaut |
+| *historisch:* 2N7000 | – | aus einem Transistor-Set mit 24 Typen (ALLECIN; enthält auch BC547 → Darlington-Ersatz aus 2 × BC547) | Amazon.de, **B0C1V82313**, 9,99 € | nicht verbaut |
 
 **Nicht mehr nötig** (aus dem Trafo-Versorgungsentwurf vom 04.10.): Brückengleichrichter, Elko 1000 µF/35 V, Step-down-Modul,
 1N5408-Dioden für den Dioden-Abgriff, Hutschienengehäuse, D1 mini Pro mit Außenantenne (Verteiler sind Kunststoff in einer
@@ -122,45 +138,46 @@ Holznische, kein Metallkasten).
 
 ---
 
-## Umbau auf 2N7000 (geplant)
+## Schaltung BC517 (seit 20.10.2026)
 
-Druckplan: [`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf) (A4 quer, erzeugt von
-`plaene/klingel_mosfet_plan.py`, Vorschau `plaene/klingel-schaltplan-mosfet-vorschau.png`).
-
-**Warum:** Jeder Gong legt in Ruhe seine Batteriespannung (Etage 1: 9 V DC) auf die Taster-Schleife, der Taster schließt
-sie kurz. Ein MOSFET-Gate über 1 MΩ belastet die Schleife praktisch nicht und schaltet schon bei wenigen Volt.
+Druckplan: [`plaene/klingel-platine-bc517.pdf`](plaene/klingel-platine-bc517.pdf) (2 Seiten A4 quer: Bestückungsseite mit
+Schaltplan je Etage und Prüfschritten, Lötseite gespiegelt mit Brückenliste; Vorschau
+`plaene/klingel-platine-bc517-vorschau1.png` / `-vorschau2.png`). Erzeugt von `plaene/klingel_darlington_layout.py bc517`;
+ohne Argument entsteht die Ersatzvariante mit je **2 × BC547 als Darlington** + 1 MΩ
+([`plaene/klingel-platine-darlington.pdf`](plaene/klingel-platine-darlington.pdf)).
 
 | Von | Bauteil | Nach | Hinweis |
 |---|---|---|---|
-| Plus-Ader der Etage (Signal, in Ruhe 9 V) | 1 MΩ | 2N7000 **Gate** | |
-| 2N7000 **Drain** | – | D5 / D6 / D7 | interner Pull-up |
-| 2N7000 **Source** | – | gemeinsame Masse | alle drei Source zusammen |
-| Minus-Adern aller Etagen | – | gemeinsame Masse | nur zulässig, wenn die Minus-Seiten verbindbar sind |
-| D1 mini **G** | – | gemeinsame Masse | |
+| Kl.1 der Etage (Plus der Gong-Batterie) | 9,1 MΩ | BC517 **Basis** | gelb = Erdgeschoss, grün = Etage 1, blau = Etage 2 |
+| BC517 **Kollektor** | – | D5 / D6 / D7 | interner Pull-up |
+| BC517 **Emitter** | – | GND-Schiene → D1 mini **G** | alle drei Emitter gemeinsam |
+| Kl.2 aller Etagen (grau) | – | GND-Schiene | gemeinsamer Rückleiter |
 
-| Zustand | Ader | MOSFET | Eingang |
-|---|---|---|---|
-| Ruhe | 9 V | leitet | **LOW** |
-| Taste gedrückt | 0 V | sperrt | **HIGH** |
+| Zustand | Schleife | BC517 | Eingang | HA |
+|---|---|---|---|---|
+| Ruhe | Batteriespannung (3–9,5 V) | leitet | **LOW** | aus |
+| Taste gedrückt | ~0 V | sperrt | **HIGH** | gedrückt + Event |
+| Dauer-HIGH > 30 s | keine Spannung (Batterie leer, Ader lose) | sperrt | HIGH | „Klingelbatterie leer“ |
 
-Pinbelegung 2N7000 (flache Seite zum Betrachter, Beinchen nach unten): **Source · Gate · Drain**. Der Optokoppler,
-die 1N4007 und der 1 kΩ entfallen.
+Pinbelegung BC517 (Datenblatt CDIL, flache Seite zum Betrachter, Beine unten): **C · B · E**. Im Layout steht er gedreht
+(C oben, E unten, flache Seite nach links).
 
-**Annahmen, die vor dem Löten gemessen werden müssen** (alle noch *ungeprüft*):
+**Prüfblätter:** [`plaene/klingel-messblatt-bc517.pdf`](plaene/klingel-messblatt-bc517.pdf) (Spannungen je Etage:
+Kontrollmessung 3V3↔G, Kl.1↔grau, Basis, Pin in Ruhe/gedrückt) und
+[`plaene/klingel-durchgang-bc517.pdf`](plaene/klingel-durchgang-bc517.pdf) (Durchgang G ↔ grau ↔ GND-Schiene ↔ Emitter).
 
-- Je Etage gibt es eine **eigene Plus-Ader**, und die Minus-Seiten der drei Gongs dürfen verbunden werden. Nie zwei
-  Plus-Adern verbinden und nie Plus mit Minus – das ist für den Gong ein Tastendruck.
-- Die Aderspannung reicht für den 2N7000: ab etwa 3,5 V. Etage 2 (Gong mit 4,5 V) liegt knapp darüber; liegt sie
-  darunter, ist ein BC547 (im Set enthalten) vorgesehen.
+**Grenzwert (abgeleitet, nicht gemessen):** Ein Darlington zieht den Kollektor nicht ganz auf 0 V, es bleiben
+~0,6–0,9 V. Der ESP8266 erkennt LOW sicher erst unter ~0,8 V. Liegt der Pin in Ruhe in diesem Bereich, kann der D1
+„HIGH“ lesen – siehe [Fehlersuche Nr. 23](docs/fehlersuche.md#23-bc517-kanal-leitet-in-ruhe-nicht).
 
-**Firmware:** noch **nicht** umgestellt. Laut Plan ändert sich die Logik: Ruhe = LOW, Druck = HIGH – `inverted: true`
-der PC817-Variante muss dafür weg, und die 50-Hz-Glättung (`delayed_off: 200ms` / `delayed_on: 230ms`) soll durch einen
-einfachen Entprellfilter ersetzt werden. Die genauen Werte sind noch nicht festgelegt.
+> **Historisch – 2N7000 (12.–14.10.):** Geplant war je Etage ein 2N7000 mit 1 MΩ am Gate
+> ([`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf)). Verworfen, weil die
+> Erdgeschoss-Schleife nur ~3 V hat und die Gate-Schwelle des 2N7000 dafür zu knapp ist.
 
 ## Pinbelegung und Verdrahtung
 
-> Dieser Abschnitt beschreibt die **PC817-Variante** (Stand 11.10.), die hier nicht funktioniert. Für den Umbau gilt
-> [Umbau auf 2N7000](#umbau-auf-2n7000-geplant).
+> Die Litzenfarben und die D1-Belegung gelten unverändert. Die Tabelle „Je Etage“ beschreibt die **historische
+> PC817-Variante** – für die aktuelle Schaltung gilt [Schaltung BC517](#schaltung-bc517-seit-20102026).
 
 Schaltplan: [`plaene/klingel_plan.svg`](plaene/klingel_plan.svg) (erzeugt von `plaene/klingel_plan.py`).
 Druckfassung mit Litzenfarben (A4 quer): [`plaene/klingel-schaltplan-farbig.pdf`](plaene/klingel-schaltplan-farbig.pdf)
@@ -196,15 +213,15 @@ Etage = gleiche Farbe auf beiden Seiten. **Kein Rot** – das bleibt für +5 V.
 
 | Pin D1 | GPIO | Funktion | Entität (Erwartung) |
 |---|---|---|---|
-| D5 | GPIO14 | Erdgeschoss, `INPUT_PULLUP`, invertiert | `event.klingel_erdgeschoss` |
-| D6 | GPIO12 | Etage 1, `INPUT_PULLUP`, invertiert | `event.klingel_etage_1` |
-| D7 | GPIO13 | Etage 2, `INPUT_PULLUP`, invertiert | `event.klingel_etage_2` |
-| G | – | gemeinsamer Emitter der 3 PC817 | |
+| D5 | GPIO14 | Erdgeschoss, `INPUT_PULLUP`, nicht invertiert (seit 20.10.) | `event.klingel_erdgeschoss` |
+| D6 | GPIO12 | Etage 1, `INPUT_PULLUP`, nicht invertiert (seit 20.10.) | `event.klingel_etage_1` |
+| D7 | GPIO13 | Etage 2, `INPUT_PULLUP`, nicht invertiert (seit 20.10.) | `event.klingel_etage_2` |
+| G | – | gemeinsamer Emitter der 3 BC517 + grauer Rückleiter | |
 | USB | – | Versorgung über USB-Netzteil | |
 | D1 (GPIO5) | – | reserviert für optionales „Gong stumm“-Relais | |
 | D3 / D4 / D8 | – | **nicht verwenden** (Boot-Pins) | |
 
-Welche Ader in der Abzweigdose welche Etage ist, ist **noch nicht bekannt** → [docs/einmessen.md](docs/einmessen.md#1-adern-zuordnen).
+Zuordnung und Polarität der Adern sind seit dem 14./20.10. gemessen (siehe Status).
 
 ---
 
@@ -260,15 +277,16 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | Gerätename / Hostname | `klingel` (→ `klingel.local`) |
 | Friendly Name | `Klingel` |
 | Board | `esp8266` / `d1_mini` |
-| IP | **noch keine** – im Router fest vergeben (wie bei den anderen ESPs); nach dem Erstflash vom 11.10. noch offen |
+| IP | im Router fest vergeben (11.10.) |
 | `substitutions` | `taster_1: Erdgeschoss`, `taster_2: Etage 1`, `taster_3: Etage 2` |
-| Filter je Eingang | `delayed_off: 200ms`, **dann** `delayed_on: 230ms` (Anker `&klingelfilter`) – Reihenfolge seit 11.10. korrigiert, siehe Fehlersuche Nr. 1 |
+| Eingänge | `INPUT_PULLUP`, `inverted: false` (Ruhe LOW, Druck HIGH) |
+| Filter je Eingang | `delayed_on: 30ms`, `delayed_off: 100ms` (Anker `&klingelfilter`) – Gleichspannung, nur Prellen/Störspitzen verwerfen (bis 19.10.: 200/230 ms für 50-Hz-Halbwellen, siehe Fehlersuche Nr. 1) |
 | Logger | `INFO` |
 | API | verschlüsselt (`!secret klingel_api_key`) |
 | OTA | `platform: esphome` |
 | Fallback-Hotspot | SSID `Klingel-Fallback`, Passwort `!secret klingel_ap_password`, mit Captive Portal |
 
-### Entitäten in Home Assistant (nach Adoption – Namen dann prüfen)
+### Entitäten in Home Assistant
 
 | Entität (erwartet) | Typ | Bedeutung |
 |---|---|---|
@@ -277,6 +295,7 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | `binary_sensor.klingel_status` | status | ESP online |
 | `sensor.klingel_wlan_signal` | Signal (dBm), alle 120 s | |
 | `sensor.klingel_laufzeit` | Uptime, alle 600 s | |
+| `binary_sensor.*_klingelbatterie_leer` | problem | EIN, wenn ein Kanal länger als 30 s „gedrückt“ zeigt: Gong-Batterie leer oder Ader lose (seit 20.10.) |
 
 ### Secrets
 
@@ -293,6 +312,8 @@ Datei: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 3. In HA die ESPHome-Integration mit Host und Verschlüsselungsschlüssel hinzufügen; im Router feste IP setzen.
 4. Im **ESPHome Builder**: Secrets ergänzen, „New device“ → überspringen → YAML einfügen, **nicht** installieren.
    Ab dann Updates **per OTA** aus dem Builder.
+
+Stand 20.10.: Updates laufen per OTA aus dem ESPHome Builder (zuletzt die BC517-Firmware am 20.10.).
 
 Stand 11.10.: Schritt 1 und 2 erledigt (Erstflash lokal per USB, API-Handshake mit echtem Schlüssel ok). Im Builder ist
 das Gerät als `klingel.yaml` angelegt und die Secrets eingetragen. HA-Adoption und feste IP im Router sind erledigt
@@ -314,8 +335,8 @@ das Gerät als `klingel.yaml` angelegt und die Secrets eingetragen. HA-Adoption 
 | [docs/verlauf.md](docs/verlauf.md) | Entscheidungen und verworfene Varianten (PC814, Trafo-Versorgung, Dioden-Abgriff) |
 
 **Kurzfassung der Reihenfolge:** Teile prüfen ✅ → Platine löten ✅ → Erstflash ✅ → Tischtest ✅ →
-HA/Builder/feste IP ✅ → Einbau mit PC817 ✗ (12.10., Batteriegongs) → **Polarität je Etage messen (V⎓)** → Umbau auf
-2N7000 → Firmware umstellen → je Etage einmal klingeln → HA-Paket anlegen → Alexa-Routinen.
+HA/Builder/feste IP ✅ → Einbau mit PC817 ✗ (12.10., Batteriegongs) → Polarität je Etage messen ✅ → Umbau auf
+BC517 ✅ → Firmware umstellen ✅ → je Etage einmal klingeln ✅ (20.10.) → **HA-Paket anlegen** → Alexa-Routinen.
 
 **Sicherheit:** Vor dem Öffnen von Klemmen die Sicherung des Klingeltrafos ausschalten. In der Abzweigdose liegen laut
 Sichtprüfung (Jens, 06.10.) nur Klingeladern. Die 230-V-Seite des Trafos gehört dem Elektriker.
@@ -369,11 +390,12 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 | 12a | Gehäuse drucken | Jens | am 11.10. gestartet |
 | 12b | Einbau an der Abzweigdose und Abnahmetest ([einbau.md](docs/einbau.md) C/D) | – | 12.10. mit PC817 gescheitert; neu nach 14–16 |
 | 13 | optional: Relais „Gong stumm“ | – | später, nicht beauftragt |
-| 14 | **Je Etage die zwei Adern mit Gong-Spannung finden und Polarität messen** (Multimeter auf V⎓, Bereich vorher an einem bekannten Punkt prüfen) | Jens | vor dem Umbau |
-| 15 | Transistor-Set (2N7000) | – | bestellt, Lieferung **14.10.** |
-| 16 | Umbau: PC817/1N4007/1 kΩ raus, 3 × 2N7000 + 3 × 1 MΩ nach `plaene/klingel-schaltplan-mosfet.pdf` | Jens | ab 14.10. |
-| 17 | Firmware auf die neue Logik umstellen (`inverted` weg, Entprellfilter statt 50-Hz-Glättung), per OTA flashen, Abnahmetest je Etage | Claude/Jens | nach 16 |
-| 18 | Nebenbefund 12.10. klären: Event kam in HA an, `binary_sensor.klingel_*_gedruckt` zeigte nie „on“ | – | nach 17 |
+| 14 | ✅ Je Etage Gong-Adern und Polarität gemessen (Kl.1 = Plus) | Jens | 14.10. / 20.10. |
+| 15 | ✅ Teile: BC517 + 9,1 MΩ (reichelt) | – | geliefert 20.10. |
+| 16 | ✅ Umbau: PC817/1N4007/1 kΩ raus, 3 × BC517 + 3 × 9,1 MΩ nach `plaene/klingel-platine-bc517.pdf` | Jens | 20.10. |
+| 17 | ✅ Firmware umgestellt (OTA), Abnahmetest je Etage bestanden | Claude/Jens | 20.10. |
+| 18 | ✅ Nebenbefund 12.10.: mit BC517 kommen Event und Binärsensor zusammen an | – | 20.10. |
+| 19 | Einmaliges Nachläuten des Erdgeschoss-Gongs beim ersten Test (20.10.) beobachten | Jens | laufend |
 
 ---
 
@@ -386,14 +408,20 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 | `docs/einbau.md` | Aufbau, Inbetriebnahme, Einbau, Test |
 | `docs/fehlersuche.md` | Fehlerbilder |
 | `docs/verlauf.md` | Projektverlauf und verworfene Varianten |
-| `firmware/klingel.yaml` | ESPHome-Konfiguration (D1 mini, 3 Eingänge, 3 Events) |
+| `firmware/klingel.yaml` | ESPHome-Konfiguration (D1 mini, 3 Eingänge, 3 Events, Batterie-leer-Sensor) – BC517-Stand |
 | `firmware/secrets.example.yaml` | Vorlage für die Secrets (ohne echte Werte) |
 | `ha/klingel.yaml` | HA-Paket-Entwurf (Trigger-Templates für Alexa, Push-/Panel-Automation) |
-| `plaene/klingel_plan.svg` | Schaltplan je Etage: 1 kΩ, PC817, 1N4007, Ausgänge D5/D6/D7 |
+| `plaene/klingel-platine-bc517.pdf` | **aktueller Plan**: Platine mit 3 × BC517 + 9,1 MΩ, 2 Seiten (Bestückung + Schaltplan + Prüfschritte, Lötseite + Brückenliste), Stand 20.10. |
+| `plaene/klingel-platine-bc517-vorschau1.png` / `-vorschau2.png` | Vorschau der beiden Seiten |
+| `plaene/klingel-platine-darlington.pdf` | Ersatzvariante mit je 2 × BC547 als Darlington + 1 MΩ (16.10., nicht verbaut) |
+| `plaene/klingel_darlington_layout.py` | erzeugt beide Platinenpläne (`python3 klingel_darlington_layout.py bc517` bzw. ohne Argument); in `plaene/` ausführen |
+| `plaene/klingel-messblatt-bc517.pdf` / `klingel_messblatt_bc517.py` | Messblatt Spannungen je Etage nach dem Umbau (20.10.) |
+| `plaene/klingel-durchgang-bc517.pdf` / `klingel_durchgang_bc517.py` | Durchgangsprüfung der GND-Verbindungen (20.10.) |
+| `plaene/klingel_plan.svg` | *historisch:* Schaltplan je Etage: 1 kΩ, PC817, 1N4007, Ausgänge D5/D6/D7 |
 | `plaene/klingel_plan.py` | erzeugt den Schaltplan (matplotlib); schreibt nach `doku/klingel_plan.svg` relativ zum Arbeitsverzeichnis – Pfad bei Bedarf anpassen |
-| `plaene/klingel-schaltplan-farbig.pdf` | Druckblatt A4 quer: Schaltplan mit Litzenfarben, Farbschema und Kennfarben der Bauteile |
+| `plaene/klingel-schaltplan-farbig.pdf` | *historisch:* Druckblatt A4 quer: Schaltplan mit Litzenfarben, Farbschema und Kennfarben der Bauteile |
 | `plaene/klingel_plan_druck.py` | erzeugt das farbige PDF; liest `klingel_plan.py` aus dem Arbeitsverzeichnis (also in `plaene/` ausführen) |
-| `plaene/klingel-schaltplan-mosfet.pdf` | Druckblatt A4 quer: Umbau auf 3 × 2N7000 + 3 × 1 MΩ, Messanleitung Polarität, Pinbelegung 2N7000 (12.10.) |
+| `plaene/klingel-schaltplan-mosfet.pdf` | *historisch, verworfen:* Druckblatt A4 quer: Umbau auf 3 × 2N7000 + 3 × 1 MΩ, Messanleitung Polarität, Pinbelegung 2N7000 (12.10.) |
 | `plaene/klingel-schaltplan-mosfet-vorschau.png` | Vorschau des MOSFET-Plans |
 | `plaene/klingel_mosfet_plan.py` | erzeugt PDF und Vorschau (matplotlib); in `plaene/` ausführen |
 | `plaene/klingel-messblatt-abzweigdose.pdf` | Messblatt A4 hoch für die Aderzuordnung (11.10.) – **beruht noch auf der Annahme „Trafo treibt Gong“ (V~)**, nur noch zur Nachvollziehbarkeit |

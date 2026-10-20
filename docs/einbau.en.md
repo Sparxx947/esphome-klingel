@@ -6,11 +6,23 @@ Sequence: **A** build the board → **B** commissioning on the bench → **C** i
 **D** acceptance test → **E** Home Assistant. Prerequisite is the wire assignment from
 [einmessen.en.md](einmessen.en.md#1-assigning-the-wires).
 
-> **Status 13.10.2026:** this guide describes the **PC817 variant**. Installation with it failed on 12.10. (battery
-> chimes with a contact input, see [verlauf.en.md](verlauf.en.md)). For the planned rebuild with 2N7000 see
-> [`plaene/klingel-schaltplan-mosfet.pdf`](../plaene/klingel-schaltplan-mosfet.pdf) and
-> [einmessen.en.md 0](einmessen.en.md#0-check-meter-range-and-the-device-at-the-other-end-first); a separate
-> installation guide for it will follow after the rebuild.
+> **Status 20.10.2026:** sections A–D below describe the **historical PC817 variant** (installation failed on 12.10.,
+> battery chimes). For the current circuit with **BC517** the following short procedure applies.
+
+## BC517: assembly and acceptance (20.10.2026)
+
+1. Populate the board per [`plaene/klingel-platine-bc517.pdf`](../plaene/klingel-platine-bc517.pdf); check each BC517
+   in diode mode first (red on base: B→C ~0.6–0.75 V, B→E ~1.1–1.4 V, reversed OL). Jumpers on the solder side from
+   cut-off resistor legs.
+2. Unconnected: continuity only within each net, diode test on the finished channels (see plan, page 1).
+3. **Connect the ground floor first** (yellow Kl.1, grey Kl.2, black G): the chime must stay **silent** and the loop
+   voltage must not change. Then ring → chime rings, pin D5 goes HIGH.
+4. Add floors 1 and 2. If a chime rings continuously → disconnect the grey wire immediately.
+5. If something does not work: [`plaene/klingel-messblatt-bc517.pdf`](../plaene/klingel-messblatt-bc517.pdf), then
+   [`plaene/klingel-durchgang-bc517.pdf`](../plaene/klingel-durchgang-bc517.pdf) and
+   [troubleshooting no. 23](fehlersuche.en.md#23-bc517-channel-does-not-conduct-at-idle).
+6. Firmware from `firmware/klingel.yaml` (BC517 state) via OTA; acceptance: each floor once, a few seconds apart →
+   exactly one event each, no other floor triggered. **Passed on 20.10.**
 
 ---
 
