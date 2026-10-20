@@ -1,0 +1,17 @@
+# Dashboard „Klingel Kamera“ — URL-Pfad klingel-kamera, nicht in der Seitenleiste, angelegt am 20.10.2026.
+# Format: Dashboard anlegen → Bearbeiten → Rohkonfiguration. Eine panel-Ansicht = Livebild ueber die ganze Flaeche.
+# Anpassen: camera.<haustuer>. Live-Ansicht braucht eine Kamera mit Stream (bei Kameras mit nur einer RTSP-Sitzung
+# go2rtc davorschalten, damit Panels und Kamera-App sich nicht gegenseitig verdraengen).
+views:
+  - title: Haustür
+    path: haustuer
+    type: panel
+    cards:
+      - type: picture-entity
+        entity: camera.<haustuer>
+        camera_view: live
+        name: Es klingelt – Haustür
+        show_name: true
+        show_state: false
+        tap_action: { action: none }
+        hold_action: { action: none }

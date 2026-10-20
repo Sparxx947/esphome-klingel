@@ -147,6 +147,10 @@ Basis-Emitter-Spannung des zweiten Transistors bleibt stehen). Der ESP8266 erken
 widerlegt. Woher die Minuswerte kamen, ist ungeklärt. **Spannungen gegen den Rückleiter (grau) messen, nicht gegen G,
 und Verbindungen per Durchgang belegen.**
 
+**Zusätzliches Klingeln während des Tests:** Am 20.10. klingelte es im EG direkt nach den Testdrücken noch einmal.
+Das war ein echter Besucher, kein Übersprechen zwischen den Etagen. Gegenprobe: Bei der Abnahme löste jeder Druck genau
+ein Event auf genau einer Etage aus.
+
 ---
 
 ## Gong wird leiser oder klingelt nicht mehr

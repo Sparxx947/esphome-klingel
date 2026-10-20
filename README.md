@@ -31,9 +31,8 @@ Hinweise für den Nachbau in einem anderen Haus:
 
 - **Secrets:** `firmware/secrets.example.yaml` nach `secrets.yaml` kopieren (bzw. im ESPHome Builder anlegen) und
   WLAN-Name, WLAN-Passwort, API-Schlüssel und Hotspot-Passwort durch eigene Werte ersetzen.
-- **HA-Paket:** In `ha/klingel.yaml` die Benachrichtigungsdienste `notify.mobile_app_handy_*` durch die eigenen
-  Handy-Dienste ersetzen, ebenso die Entitäts-IDs der Kamera (`camera.haustuer_standardauflosung`) und der Wandpanels
-  (`switch.wandpanel_*`, `button.wandpanel_*`, `notify.wandpanel_*`).
+- **Home Assistant:** In `ha/klingel-*.yaml` die Platzhalter in spitzen Klammern ersetzen (Handy-Dienst, Kamera,
+  Fully-Kiosk-Geräte und -Entitäten, HA-Adresse) – Tabelle in [docs/home-assistant.md](docs/home-assistant.md#nachbauen).
 - **Zuerst den Gong ansehen:** Hat er eine eigene Batterie und nur zwei Drähte zum Taster (Kontakteingang), passt
   die BC517-Schaltung dieses Repos. Wird der Gong dagegen vom Klingeltrafo getrieben (Wechselspannung am Gong beim
   Drücken), passt die historische Optokoppler-Variante (PC817 + Gegendiode).
@@ -75,7 +74,8 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 > **Kurz:** In Betrieb. Platine mit 3 × BC517 + 9,1 MΩ an der Abzweigdose angeschlossen, Firmware per OTA aus dem
 > ESPHome Builder umgestellt (nicht invertiert, 30/100 ms Entprellung, Sensor „Klingelbatterie leer“). Abnahme am
 > 20.10.: je Etage ein Druck → genau ein Event (gedrückt 0,31 / 0,37 / 0,34 s), keine andere Etage ausgelöst.
-> **Offen:** HA-Paket (Push, Panels, Alexa) anlegen.
+> HA-Anbindung seit 20.10. 17:03 abgenommen: Push mit Kamerabild aufs Handy, Livebild 90 s auf dem Wandpanel der
+> Etage ([docs/home-assistant.md](docs/home-assistant.md)).
 
 | Bereich | Stand | Datum |
 |---|---|---|
@@ -105,7 +105,7 @@ Erstflash, siehe [Fehlersuche Nr. 1](docs/fehlersuche.md#1-gong-klingelt-aber-ke
 | ESPHome Builder | als `klingel.yaml` angelegt, Secrets eingetragen, Gerät online ✔ | 11.10. |
 | Adoption in HA | ✔ eingebunden: `event.klingel_erdgeschoss` / `_etage_1` / `_etage_2`, `binary_sensor.klingel_*_gedruckt`, Status, WLAN-Signal, Laufzeit | 11.10. |
 | Event `gedrueckt` erst nach dem OFF im Log | ✔ geklärt: In HA kommt das Event **beim Drücken** an (Test 11.10.: Event 49,818 s, Binärsensor EIN 49,922 s, AUS 53,588 s). Die Verzögerung war nur die Ausgabe des Log-Clients. ([Fehlersuche Nr. 16](docs/fehlersuche.md#16-event-erscheint-erst-nach-dem-off)) | 11.10. |
-| HA-Paket `ha/klingel.yaml` | **Entwurf**, YAML geparst, Sperrlogik in HA getestet, **noch nicht in HA angelegt** | 04./06.10. |
+| HA-Anbindung | ✔ **in Betrieb**: Push mit Kamerabild je Etage, Livebild 90 s auf dem Panel der Etage; abgenommen EG + Etage 1 (Panel Etage 2 war ohne Strom). Alter Entwurf `ha/historisch/` nie angelegt | 20.10. |
 | Gehäuse | **konstruiert** (`gehaeuse/`), Druck am 11.10. gestartet (Abschluss in den Notizen nicht ausdrücklich bestätigt) | 11.10. |
 | Nebenbefund 12.10. | ✔ **erledigt**: Mit BC517 kommen Event und Binärsensor „on“ zusammen an (Event ~0,1 s vor dem Binärsensor) | 12.10. / 20.10. |
 | Einmaliges Nachläuten Erdgeschoss | **ungeklärt**: beim ersten Test am 20.10. läutete der Erdgeschoss-Gong einmal zusätzlich; bei der Abnahme nicht wieder beobachtet | 20.10. |
@@ -345,26 +345,16 @@ Sichtprüfung (Jens, 06.10.) nur Klingeladern. Die 230-V-Seite des Trafos gehör
 
 ## Home-Assistant-Anbindung
 
-Datei: [`ha/klingel.yaml`](ha/klingel.yaml) – **Entwurf als HA-Paket, noch nicht in HA angelegt.**
+**In Betrieb seit 20.10.2026** – Einzelheiten, Nachbau und Abnahme in [docs/home-assistant.md](docs/home-assistant.md).
 
 | Baustein | Funktion |
 |---|---|
-| 3 Trigger-Template-`binary_sensor` „Klingel Erdgeschoss / Etage 1 / Etage 2“ (device_class `motion`, `auto_off: 60`) | Signal für je eine eigene **Alexa-Routine** pro Etage (Muster wie die 3D-Druck-Meldung) |
-| Automation `klingel_haustuer_meldung` | Push mit Bild der Haustürkamera (`camera.haustuer_standardauflosung`, Reolink E1 Pro) und Etage im Titel |
-| Empfänger | Erdgeschoss → Bewohner EG; Etage 1 / Etage 2 → Bewohner Etage 1/2 |
-| Wandpanels | bei **jeder** Etage alle drei: Bildschirm an, Start-URL laden (Übersicht mit Livebild), Overlay-Text |
-| Sturmklingel-Sperre | **15 s je Taster** (Abstand zum vorigen Zeitstempel desselben Events); in HA getestet: erster Druck (`unknown` → Zeit) meldet, 8 s danach nicht, 20 s danach wieder |
-| Neustart-Schutz | `not_from: unavailable` – Wiederverbinden des ESP ist kein Druck; `unknown` wird bewusst **nicht** ausgeschlossen, sonst ginge der allererste Druck verloren |
-| Modus | `parallel`, `max: 6` (zwei Etagen kurz nacheinander melden beide) |
+| Automation [`ha/klingel-automation.yaml`](ha/klingel-automation.yaml) | `event.received` je Etage → Push aufs Handy mit Standbild der Haustürkamera, Etage im Titel, je Etage eine Meldung (`tag`), eigener Kanal „Klingel“, Antippen öffnet das Livebild |
+| Skript [`ha/klingel-kamera-skript.yaml`](ha/klingel-kamera-skript.yaml) | Wandpanel der Etage (Fully Kiosk): Bildschirm an → Bewegung auslösen → `load_url` Kamera-Dashboard → 90 s → Start-URL |
+| Dashboard [`ha/klingel-kamera-dashboard.yaml`](ha/klingel-kamera-dashboard.yaml) | `klingel-kamera`: Livebild der Haustür über die ganze Fläche |
 
-Nach dem Anlegen in `/config/alexa.yaml` unter `filter.include_entities` die drei `binary_sensor.klingel_*` aufnehmen
-(je `entity_config` mit Name und `display_categories: MOTION_SENSOR`), dann in der Alexa-App Geräte suchen und je Etage
-eine Routine „Wenn Klingel <Etage> Bewegung erkennt → Ankündigung“ anlegen.
-
-Weitere Nutzer der Events: Die geplante Automation „Klingel abends“ im Projekt Treppenlicht (L1) schaltet bei einem
-Klingel-Ereignis das Treppenlicht ein, wenn es dunkel ist.
-
-Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nachweislich auf `/uebersicht`).
+Nicht umgesetzt (Ideen aus dem alten Entwurf in [`ha/historisch/`](ha/historisch/klingel-entwurf-20261004.yaml)):
+Alexa-Ansage je Etage, Empfänger je Etage, Sturmklingel-Sperre.
 
 ---
 
@@ -410,7 +400,11 @@ Vor dem Einbau prüfen: Start-URL der Panels Etage 1/2 (EZpad im EG startet nach
 | `docs/verlauf.md` | Projektverlauf und verworfene Varianten |
 | `firmware/klingel.yaml` | ESPHome-Konfiguration (D1 mini, 3 Eingänge, 3 Events, Batterie-leer-Sensor) – BC517-Stand |
 | `firmware/secrets.example.yaml` | Vorlage für die Secrets (ohne echte Werte) |
-| `ha/klingel.yaml` | HA-Paket-Entwurf (Trigger-Templates für Alexa, Push-/Panel-Automation) |
+| `ha/klingel-automation.yaml` | Automation: Push aufs Handy + Kamera aufs Etagen-Panel (in Betrieb seit 20.10.) |
+| `ha/klingel-kamera-skript.yaml` | Skript: Wandpanel wecken, Livebild 90 s, zurück zur Startseite |
+| `ha/klingel-kamera-dashboard.yaml` | Dashboard `klingel-kamera` (Livebild über die ganze Fläche) |
+| `ha/historisch/klingel-entwurf-20261004.yaml` | **historisch**: nie angelegter Paket-Entwurf (Alexa, Sturmklingel-Sperre) |
+| `docs/home-assistant.md` | HA-Anbindung: Ablauf, Nachbau, Abnahme, Fallen |
 | `plaene/klingel-platine-bc517.pdf` | **aktueller Plan**: Platine mit 3 × BC517 + 9,1 MΩ, 2 Seiten (Bestückung + Schaltplan + Prüfschritte, Lötseite + Brückenliste), Stand 20.10. |
 | `plaene/klingel-platine-bc517-vorschau1.png` / `-vorschau2.png` | Vorschau der beiden Seiten |
 | `plaene/klingel-platine-darlington.pdf` | Ersatzvariante mit je 2 × BC547 als Darlington + 1 MΩ (16.10., nicht verbaut) |

@@ -43,6 +43,8 @@
 | 20.10. 16:03 | Läuft | Nach einem weiteren Eingriff an der Platine (nicht im Einzelnen festgehalten) stehen alle drei Kanäle in Ruhe richtig (LOW); Testdrücke Etage 1/2 erkannt. |
 | 20.10. 16:13 | Firmware BC517 | Per OTA aus dem ESPHome Builder: `inverted: false`, `delayed_on: 30ms` / `delayed_off: 100ms`, neuer Sensor „Klingelbatterie leer“ (ein Kanal > 30 s gedrückt). |
 | 20.10. 16:17 | **Abnahme bestanden** | Erdgeschoss, Etage 1, Etage 2 nacheinander → je genau ein Event (gedrückt 0,31 / 0,37 / 0,34 s), kein Übersprechen. Event kommt ~0,1 s vor dem Binärsensor – der Nebenbefund vom 12.10. ist damit erledigt. |
+| 20.10. ~15:15 | Kein Übersprechen | Ein zusätzliches Klingeln im EG direkt nach den ersten Testdrücken war ein echter Besucher an der Haustür. |
+| 20.10. 17:03 | **HA-Anbindung abgenommen** | Push mit Kamerabild aufs Handy; EG und Etage 1 zeigen auf ihrem Wandpanel 90 s das Livebild und kehren zur Startseite zurück ([home-assistant.md](home-assistant.md)). |
 
 ## Verworfene Varianten
 

@@ -43,6 +43,8 @@
 | 20.10. 16:03 | Working | After a further fix on the board (details not recorded) all three channels are correct at idle (LOW); test presses on floors 1/2 detected. |
 | 20.10. 16:13 | Firmware BC517 | Via OTA from the ESPHome Builder: `inverted: false`, `delayed_on: 30ms` / `delayed_off: 100ms`, new sensor "Klingelbatterie leer" (one channel pressed > 30 s). |
 | 20.10. 16:17 | **Acceptance passed** | Ground floor, floor 1, floor 2 in turn → exactly one event each (pressed 0.31 / 0.37 / 0.34 s), no crosstalk. The event arrives ~0.1 s before the binary sensor – the side finding of 12.10. is resolved. |
+| 20.10. ~15:15 | No crosstalk | An extra ring on the ground floor right after the first test presses was a real visitor at the front door. |
+| 20.10. 17:03 | **HA integration accepted** | Push with camera image to the phone; ground floor and floor 1 show the live image on their wall panel for 90 s and return to the start page ([home-assistant.en.md](home-assistant.en.md)). |
 
 ## Discarded variants
 

@@ -1,0 +1,86 @@
+# Automation „Klingel: Handy benachrichtigen + Kamera aufs Etagen-Panel“ — in HA angelegt am 20.10.2026,
+# Abnahme 20.10. 17:03. Format: Automationseditor → „In YAML bearbeiten“ (kein Paket).
+# Anpassen:
+#   notify.mobile_app_<dein_handy>   → eigener Handy-Dienst (HA-Companion-App)
+#   camera.<haustuer>                → eigene Haustuerkamera
+#   <panel_device_id_eg/e1/e2>       → device_id des jeweiligen Fully-Kiosk-Geraets (Einstellungen → Geraete,
+#                                      steht in der Adresszeile; fully_kiosk.load_url verlangt eine device_id)
+#   *.wandpanel_eg_* / _e1_ / _e2_   → Entitaeten der Fully-Kiosk-Integration je Panel
+#   binary_sensor.wandpanel_e2_eingesteckt → nur als „Panel erreichbar?“-Pruefung (Zustand on ODER off = online)
+alias: "Klingel: Handy benachrichtigen + Kamera aufs Etagen-Panel"
+description: >-
+  Bei Klingeldruck (ESPHome-Klingel, BC517-Platine): Push mit Haustuer-Standbild; das Wandpanel
+  der Etage zeigt 90 s das Livebild (script.klingel_kamera_auf_panel).
+mode: parallel
+max: 10
+triggers:
+  - trigger: event.received
+    target: { entity_id: event.klingel_erdgeschoss }
+    options: { event_type: [gedrueckt] }
+    id: eg
+  - trigger: event.received
+    target: { entity_id: event.klingel_etage_1 }
+    options: { event_type: [gedrueckt] }
+    id: e1
+  - trigger: event.received
+    target: { entity_id: event.klingel_etage_2 }
+    options: { event_type: [gedrueckt] }
+    id: e2
+variables:
+  etage: "{{ {'eg': 'Erdgeschoss', 'e1': 'Etage 1', 'e2': 'Etage 2'}[trigger.id] }}"
+actions:
+  - alias: Push aufs Handy
+    action: notify.mobile_app_<dein_handy>
+    continue_on_error: true
+    data:
+      title: "🔔 Es klingelt – {{ etage }}"
+      message: "Haustür, {{ now().strftime('%H:%M:%S') }}"
+      data:
+        image: /api/camera_proxy/camera.<haustuer>
+        tag: "klingel-{{ trigger.id }}"     # je Etage eine Meldung; erneutes Klingeln ersetzt sie
+        channel: Klingel                     # eigener Android-Kanal → eigener Ton einstellbar
+        importance: high
+        priority: high
+        ttl: 0
+        clickAction: /klingel-kamera/haustuer   # Antippen oeffnet das Livebild
+  - alias: Kamera aufs Panel der Etage
+    choose:
+      - conditions:
+          - condition: trigger
+            id: eg
+        sequence:
+          - action: script.turn_on            # turn_on: Automation wartet die 90 s nicht ab
+            target: { entity_id: script.klingel_kamera_auf_panel }
+            data:
+              variables:
+                panel: <panel_device_id_eg>
+                bildschirm: switch.wandpanel_eg_bildschirm
+                wecken: button.wandpanel_eg_bewegungsaktivitat_auslosen
+                start_url: button.wandpanel_eg_start_url_laden
+      - conditions:
+          - condition: trigger
+            id: e1
+        sequence:
+          - action: script.turn_on
+            target: { entity_id: script.klingel_kamera_auf_panel }
+            data:
+              variables:
+                panel: <panel_device_id_e1>
+                bildschirm: switch.wandpanel_e1_bildschirm
+                wecken: button.wandpanel_e1_bewegungsaktivitat_auslosen
+                start_url: button.wandpanel_e1_start_url_laden
+      - conditions:
+          - condition: trigger
+            id: e2
+          - condition: state                  # Panel offline → Kamera ueberspringen, Push kommt trotzdem
+            entity_id: binary_sensor.wandpanel_e2_eingesteckt
+            state: ["on", "off"]
+        sequence:
+          - action: script.turn_on
+            target: { entity_id: script.klingel_kamera_auf_panel }
+            data:
+              variables:
+                panel: <panel_device_id_e2>
+                bildschirm: switch.wandpanel_e2_bildschirm
+                wecken: button.wandpanel_e2_bewegungsaktivitat_auslosen
+                start_url: button.wandpanel_e2_start_url_laden
