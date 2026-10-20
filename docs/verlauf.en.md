@@ -33,6 +33,16 @@
 | 12.10. ~17:15–17:40 | Parts | No MOSFETs/transistors in stock, but 1 MΩ available. Considered: a bag of 100 × 2N7000 and a resistor assortment; ordered instead: a **transistor set with 24 types** (contains 2N7000 and BC547 as fallback for floor 2), delivery 14.10. |
 | 12.10. | Side finding | During the installation test an event arrived in HA, but `binary_sensor.klingel_*_gedruckt` never showed "on". **Unexplained.** |
 | 13.10. | Cross-check and docs | Firmware local = ESPHome Builder (checked) = `firmware/klingel.yaml` in the repo (except the deliberately removed MAC address). **Firmware not yet switched to 2N7000.** Repo updated: status, MOSFET plan and measuring sheet in `plaene/`, measurement lesson in einmessen/fehlersuche. Open: measure polarity per floor, rebuild from 14.10. |
+| 14.10. | DC measurement | Only DC at the chime; when ringing it drops to **0 V** at the chime → contact input confirmed (the button shorts the battery loop). Per floor: terminal 1 = chime wire, terminal 2 = return. Floor 1 ~9.5 V, ground floor **2 × AA ≈ 3 V** (2.7 V in the box), floor 2 initially without batteries (silent, fitted with 3 × C cells on 15.10.). |
+| 14.10. | 2N7000 dropped | For the ground floor with ~3 V the 2N7000 gate threshold is too marginal → **BC517** (Darlington) ordered, base resistor 10 MΩ. |
+| 16.10. | New board layout | Working area 13 × 13 holes centred on the mini board (enclosure still fits), TO-92 rotated. Two variants from one script: 3 × BC517 + 10 MΩ and a substitute 3 × (2 × BC547 as Darlington) + 1 MΩ in case the delivery fails (`plaene/klingel_darlington_layout.py`). |
+| 17.10. | Delivery delay | 10 MΩ sold out → switched to **9.1 MΩ**; fits without layout change (calculated: ground floor ~0.2 µA base current, loop stays at ~2.8 V). |
+| 20.10. | Delivery + rebuild | BC517 and 9.1 MΩ arrived, plan changed to 9.1 MΩ (colour bands white–brown–blue). Board rebuilt and connected. |
+| 20.10. ~15:15 | First test ✗ | All three channels HIGH at idle, no event for 9 presses (with the old, inverted firmware "idle LOW" would have shown as permanently "pressed"). Once the ground-floor chime rang an extra time (unexplained). |
+| 20.10. ~15:30–15:55 | Troubleshooting | Measuring sheet (`plaene/klingel-messblatt-bc517.pdf`): reference 3V3↔G = +3.3 V; Kl.1 against grey **+3.1 / +9.47 / +5.5 V** (polarity correct). "G against wire" however gave −2 / −2 / −4 V – this was wrongly taken as a missing GND connection; the continuity check (`plaene/klingel-durchgang-bc517.pdf`) showed all GND connections fine. Where the −2/−4 V came from is **unexplained**. |
+| 20.10. 16:03 | Working | After a further fix on the board (details not recorded) all three channels are correct at idle (LOW); test presses on floors 1/2 detected. |
+| 20.10. 16:13 | Firmware BC517 | Via OTA from the ESPHome Builder: `inverted: false`, `delayed_on: 30ms` / `delayed_off: 100ms`, new sensor "Klingelbatterie leer" (one channel pressed > 30 s). |
+| 20.10. 16:17 | **Acceptance passed** | Ground floor, floor 1, floor 2 in turn → exactly one event each (pressed 0.31 / 0.37 / 0.34 s), no crosstalk. The event arrives ~0.1 s before the binary sensor – the side finding of 12.10. is resolved. |
 
 ## Discarded variants
 
@@ -45,5 +55,6 @@
 | PC814 | not available at short notice |
 | Powering the bench test via an 18650 shield (power-bank board) | no detection (load cut-off suspected) → bare cell or lab power supply |
 | Bench test with 5 V from the D1 mini (suggestion from `einmessen.md`) | G on the D1 is occupied, isolation doorbell/ESP side would not be preserved → separate battery |
-| **Optocoupler tap (PC817 + 1N4007 + 1 kΩ)** | 12.10.: the chimes are battery chimes with a contact input, the transformer is not in the chime circuit → the LED never gets current. Replacement: 2N7000 + 1 MΩ (planned) |
+| **Optocoupler tap (PC817 + 1N4007 + 1 kΩ)** | 12.10.: the chimes are battery chimes with a contact input, the transformer is not in the chime circuit → the LED never gets current. Replacement: BC517 + 9.1 MΩ (since 20.10.) |
+| 2N7000 + 1 MΩ | 14.10.: ground-floor loop only ~3 V, gate threshold too marginal → BC517 |
 | ESP between button and chime (trigger the chime via PC817) or ESP32 ADC with bias divider | briefly considered on 12.10. – based on the wrong DC measurement, therefore void |

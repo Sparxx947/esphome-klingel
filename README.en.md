@@ -2,24 +2,22 @@
 
 # Doorbell → Home Assistant (ESPHome, Wemos D1 mini)
 
-The existing, conventional doorbell system in the house gets a "listener": a Wemos D1 mini uses three optocouplers to
-detect **on which floor** someone is ringing and reports it as an `event` (device_class `doorbell`) to Home Assistant.
+The existing, conventional doorbell system in the house gets a "listener": a Wemos D1 mini uses three Darlington transistors
+(**BC517**) to detect **on which floor** someone is ringing and reports it as an `event` (device_class `doorbell`) to Home Assistant.
 The chime keeps ringing **unchanged** – the ESP only taps extra-low voltage and switches nothing.
 
-> **⚠ Status 13.10.2026: the optocoupler variant (PC817) does not work in this house.** The installation test on 12.10.
-> showed: each floor has its **own battery-powered chime with a contact input** (floor 1: 9 V DC at the chime terminals
-> at rest). The button only shorts the chime loop, the bell transformer is **not part** of the chime circuit – so no
-> current ever flows through the optocoupler LED. A rebuild with **3 × 2N7000 (MOSFET) + 3 × 1 MΩ** is planned
-> ([`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf)); the transistors arrive on 14.10.
-> Before that, **the polarity (plus/minus) of the chime wires must be measured per floor** in the junction box.
-> **The firmware is still unchanged** (PC817 state). The description of the PC817 circuit below is kept for
-> traceability. Details: [docs/verlauf.en.md](docs/verlauf.en.md), [Rebuild with 2N7000](#rebuild-with-2n7000-planned).
+> **✅ Status 20.10.2026: working.** Each floor has its **own battery-powered chime with a contact input**; the button
+> only shorts the chime loop (so an optocoupler tap cannot work, see [history](docs/verlauf.en.md)). Since 20.10. each
+> floor has a **BC517 with a 9.1 MΩ base resistor** on the loop: at rest the battery voltage is present, the BC517
+> conducts, the input is **LOW**; pressing the button collapses the voltage → **HIGH**. Acceptance test on 20.10.: each
+> floor exactly **one** event, no crosstalk. Plan: [`plaene/klingel-platine-bc517.pdf`](plaene/klingel-platine-bc517.pdf),
+> details: [BC517 circuit](#bc517-circuit-since-20102026). The PC817 sections further down are **historical**.
 
 | | |
 |---|---|
 | Project code (workshop book) | **K1 Türklingel · 3 Etagen mithören** (doorbell · listen in on 3 floors) |
 | Board | Wemos D1 mini V3.0.0 (ESP8266), "D1 #2" from stock |
-| Detection | 3 × optocoupler **PC817C** + one anti-parallel reverse diode **1N4007** each + 1 kΩ series resistor – **does not work here** (battery chimes), planned: 3 × **2N7000** + 3 × 1 MΩ |
+| Detection | 3 × **BC517** (Darlington, TO-92) + 3 × **9.1 MΩ** on the chime loops (since 20.10.2026). Historical: PC817C + 1N4007 + 1 kΩ (does not work with battery chimes), 2N7000 (too marginal for the ~3 V ground-floor loop) |
 | Tap point | Junction box top left above the left small distribution board in the stairwell (**all** doorbell wires meet there, extra-low voltage only) |
 | Bell transformer | Hager ST303, 8 VA, PRI 230 V (terminals 1/7), SEC 8 V (2–4) / 12 V (2–8), right distribution board, row 3, slot 25/26 |
 | D1 power supply | USB power supply in a Schuko socket in the left distribution board ("SNS016", row 5, slot 49–52) – **not** from the bell transformer |
@@ -35,13 +33,24 @@ Notes for rebuilding this in another house:
 - **HA package:** in `ha/klingel.yaml`, replace the notify services `notify.mobile_app_handy_*` with your own phone
   services, as well as the entity IDs of the camera (`camera.haustuer_standardauflosung`) and of the wall panels
   (`switch.wandpanel_*`, `button.wandpanel_*`, `notify.wandpanel_*`).
-- **Measure the bell transformer first:** determine the chime voltage (here 8 or 12 V AC) with a multimeter before
-  soldering, and check the series resistor and reverse diode against it (see [docs/einmessen.en.md](docs/einmessen.en.md)).
-- **Look at the chime itself first:** if it has its own battery and only two wires to the button (contact input), the
-  transformer does not drive it – then the optocoupler circuit does not fit, use the MOSFET variant instead
-  ([Rebuild with 2N7000](#rebuild-with-2n7000-planned)). Exactly that happened here on 12.10.
+- **Look at the chime first:** if it has its own battery and only two wires to the button (contact input), the BC517
+  circuit of this repo fits. If the chime is driven by the bell transformer (AC at the chime while pressing), the
+  historical optocoupler variant (PC817 + reverse diode) fits.
+- **Measure the polarity per floor** (multimeter on V⎓, check it on a known point first): the wire at the base (here
+  "Kl.1") must be **plus** against the common return (grey). See
+  [`plaene/klingel-messblatt-bc517.pdf`](plaene/klingel-messblatt-bc517.pdf) (German).
 
-## Principle
+## Principle (BC517, since 20.10.2026)
+
+At rest each chime puts its battery voltage on the button loop (here: ground floor ~3.1 V, floor 1 ~9.5 V, floor 2
+~5.5 V, measured 20.10.). The button shorts the loop, the chime detects that and rings. Through **9.1 MΩ** only about
+0.2–1 µA of base current flows from the loop into a **BC517** (Darlington, gain ≥ 30,000) – enough to pull the D1 mini
+input LOW against the internal pull-up, and so little that the chime does not see it as a button press. When the button
+is pressed the loop voltage drops to ~0 V, the BC517 turns off, the input goes **HIGH** → event `gedrueckt`.
+
+The emitters of all three BC517 and the common return (grey = all Kl.2) are connected to **G** of the D1 mini.
+
+## Principle (PC817, historical – does not work here)
 
 When someone presses a doorbell button downstairs, the AC voltage of the bell transformer (8 or 12 V AC) appears at the
 chime of that floor. The LED of a PC817 is connected in parallel to the chime (via 1 kΩ). The optocoupler galvanically
@@ -59,21 +68,24 @@ press. It therefore comes **before** `delayed_on: 230ms` – the reverse order w
 
 ---
 
-## Status (as of 13.10.2026)
+## Status (as of 20.10.2026)
 
-> **In short:** device flashed, in HA and in the Builder. The installation at the junction box on 12.10. **failed**:
-> the chimes are **battery chimes with a contact input**, the PC817 tap never gets current. The board is disconnected
-> (grey wire removed), the chimes work normally. **Next step:** measure polarity per floor, then rebuild with 2N7000
-> (parts arrive 14.10.) and adapt the firmware. **Firmware not adapted yet.**
+> **In short:** in operation. Board with 3 × BC517 + 9.1 MΩ connected at the junction box, firmware switched via OTA
+> from the ESPHome Builder (not inverted, 30/100 ms debounce, "Klingelbatterie leer" sensor). Acceptance test on 20.10.:
+> one press per floor → exactly one event (pressed 0.31 / 0.37 / 0.34 s), no other floor triggered.
+> **Open:** create the HA package (push, panels, Alexa).
 
 | Area | Status | Date |
 |---|---|---|
+| **Acceptance BC517** | ✔ **passed**: ground floor, floor 1, floor 2 pressed in turn → exactly one event each, binary sensor ON 0.31–0.37 s, no crosstalk, "Klingelbatterie leer" OFF | 20.10. |
+| **Firmware BC517** | ✔ via OTA (ESPHome Builder): `inverted: false`, `delayed_on: 30ms` / `delayed_off: 100ms`, template sensor "Klingelbatterie leer" (one channel pressed > 30 s) | 20.10. |
+| **Board BC517** | ✔ soldered per [`plaene/klingel-platine-bc517.pdf`](plaene/klingel-platine-bc517.pdf); at first connection no channel conducted (fixed while checking, details not recorded), then all three ✔ | 20.10. |
+| Polarity of the chime wires per floor (DC) | ✔ measured: Kl.1 against grey ground floor **+3.1 V**, floor 1 **+9.47 V**, floor 2 **+5.5 V** | 20.10. |
+| Chime wiring | ✔ per floor terminal 1 = chime wire (plus), terminal 2 = return; ground floor 2 × AA (~3 V) → 2N7000 too marginal → **BC517** | 14.10. |
 | **Chime type** | **clarified**: each floor has its own battery chime with a contact input. Floor 1: electronic chime with a 9 V block battery, loudspeaker, only 2 wires, **9 V DC** at the terminals at rest (measured). Ground floor: probably also 9 V (*unverified*). Floor 2: different chime with 3 × C cell (LR14) = 4.5 V (*voltage at the wires not measured*). Manufacturer unknown. | 12.10. |
 | **PC817 tap** | **does not work here** – the transformer is not in the chime circuit, the LED gets no current. The only hits in the log were connection transients. Board disconnected. | 12.10. |
-| **Rebuild with 2N7000** | **planned**, print plan done (`plaene/klingel-schaltplan-mosfet.pdf`), transistor set ordered (delivery 14.10.), 1 MΩ available. The plan rests on an **unmeasured assumption** (separate plus wire per floor, minus sides can be joined). | 12.10. |
-| Polarity of the chime wires per floor (DC) | **open** – measurement in the junction box before the rebuild | – |
-| Firmware for 2N7000 | **not adapted yet** (`inverted` and filters come from the PC817 variant, see [Rebuild with 2N7000](#rebuild-with-2n7000-planned)) | – |
-| Firmware `klingel.yaml` (3 buttons, events, filters) | **done**, filter order corrected (`delayed_off: 200ms` before `delayed_on: 230ms`) | 04.10. / 11.10. |
+| Rebuild with 2N7000 | **dropped** (14.10.): the ground-floor loop has only ~3 V, too marginal for the gate threshold. Replaced by BC517 | 12.10. / 14.10. |
+| Firmware `klingel.yaml` PC817 state (historical) | filters `delayed_off: 200ms` before `delayed_on: 230ms` for 50 Hz half-waves – replaced since 20.10. | 04.10. / 11.10. |
 | First flash | **done** via USB with the real secrets (ESPHome 2026.9.1, RAM 39.0 %, flash 40.3 %); Wi-Fi connected, API handshake with the real key ok | 11.10. |
 | Floor names / entities | **done** (`Erdgeschoss` / `Etage 1` / `Etage 2` – ground floor / floor 1 / floor 2) | 04.10. |
 | Recipients per floor | **done** (GF → residents ground floor, floor 1/2 → residents floors 1/2) | 06.10. |
@@ -93,7 +105,8 @@ press. It therefore comes **before** `delayed_on: 230ms` – the reverse order w
 | Event `gedrueckt` only after the OFF in the log | ✔ resolved: in HA the event arrives **on press** (test 11.10.: event 49.818 s, binary sensor ON 49.922 s, OFF 53.588 s). The delay was only the log client's output. ([Troubleshooting no. 16](docs/fehlersuche.en.md#16-event-appears-only-after-the-off)) | 11.10. |
 | HA package `ha/klingel.yaml` | **draft**, YAML parsed, lockout logic tested in HA, **not yet created in HA** | 04./06.10. |
 | Enclosure | **designed** (`gehaeuse/`), printing started on 11.10. (completion not explicitly confirmed in the notes) | 11.10. |
-| Side finding 12.10. | **unexplained**: during the installation test an event arrived in HA, but `binary_sensor.klingel_*_gedruckt` never showed "on" | 12.10. |
+| Side finding 12.10. | ✔ **resolved**: with BC517 the event and binary sensor "on" arrive together (event ~0.1 s before the binary sensor) | 12.10. / 20.10. |
+| One extra ring ground floor | **unexplained**: during the first test on 20.10. the ground-floor chime rang once more; not seen again during acceptance | 20.10. |
 
 ---
 
@@ -102,9 +115,9 @@ press. It therefore comes **before** `delayed_on: 230ms` – the reverse order w
 | Part | Qty | Designation / type | Source, ASIN, price | Status |
 |---|---|---|---|---|
 | Microcontroller | 1 | Wemos D1 mini V3.0.0 (ESP8266), "D1 #2" | stock (4 × available) | available |
-| Optocoupler | 3 (+ spare) | PC817C, DIP-4, 50 pieces (ALLECIN) | Amazon.de, **B0CBKK6T3D**, €7.99 | delivered 07.10. |
-| Reverse diode | 3 | 1N4007 (alternatively 1N5819 – recovery time irrelevant at 50 Hz) from diode assortment (BOJACK) | Amazon.de, **B07YK3XMQQ**, €10.99 (shared with the tank measurement project) | delivered 07.10. |
-| Series resistor | 3 | 1 kΩ, 0.25 W is enough (~10 mA, ~0.12 W) | resistor assortment (AZ-Delivery) | available, fitted 11.10. |
+| *historical:* Optocoupler | 3 (+ spare) | PC817C, DIP-4, 50 pieces (ALLECIN) | Amazon.de, **B0CBKK6T3D**, €7.99 | delivered 07.10. |
+| *historical:* Reverse diode | 3 | 1N4007 (alternatively 1N5819 – recovery time irrelevant at 50 Hz) from diode assortment (BOJACK) | Amazon.de, **B07YK3XMQQ**, €10.99 (shared with the tank measurement project) | delivered 07.10. |
+| *historical:* Series resistor | 3 | 1 kΩ, 0.25 W is enough (~10 mA, ~0.12 W) | resistor assortment (AZ-Delivery) | available, fitted 11.10. |
 | Perfboard | 1 | mini solder board 45 × 39 mm (measured 44.12 × 38.74), 5 pieces – **individual pads without tracks** | Amazon.de, **B073FVX29X**, €5.19 | delivered 09.10., soldered 11.10. |
 | Power supply | 1 | USB power supply 5 V (type not fixed) for the Schuko socket in the left distribution board | – | **unresolved** (in stock?) |
 | USB cable | 1 | matching the D1 mini, length socket → junction box | – | **unresolved** |
@@ -113,8 +126,9 @@ press. It therefore comes **before** `delayed_on: 230ms` – the reverse order w
 | Enclosure | 1 | box + lid, `gehaeuse/klingel_box.stl` + `gehaeuse/klingel_deckel.stl` (PLA) + 4 self-tapping screws 3 × 12, wall mounting 4 × Spax 4 | own print | designed 11.10., printing not confirmed |
 | Tools | – | multimeter (borrowed; own UNI-T UT139C ordered), soldering iron | stock / ordered | available |
 | *optional:* relay module | 1 | for "chime mute" on D1 (GPIO5), normally-closed contact | – | idea only, commented out |
-| **Rebuild 2N7000:** MOSFET | 3 | 2N7000 (TO-92) from a transistor set with 24 types (ALLECIN; also contains BC547, among others) | Amazon.de, **B0C1V82313**, €9.99 | ordered 12.10., delivery 14.10. (quantity per type not confirmed) |
-| **Rebuild 2N7000:** gate resistor | 3 | 1 MΩ | own assortment | available |
+| **BC517:** Darlington transistor | 3 (10 ordered) | BC517 (TO-92, CDIL) | reichelt | delivered 20.10., fitted |
+| **BC517:** base resistor | 3 (5 ordered) | 9.1 MΩ, 1/4 W (10 MΩ was sold out; 1 MΩ also works by calculation) | reichelt | delivered 20.10., fitted |
+| *historical:* 2N7000 | – | from a transistor set with 24 types (ALLECIN; also contains BC547 → Darlington substitute from 2 × BC547) | Amazon.de, **B0C1V82313**, €9.99 | not fitted |
 
 **No longer needed** (from the transformer-supply draft of 04.10.): bridge rectifier, electrolytic capacitor 1000 µF/35 V,
 step-down module, 1N5408 diodes for the diode tap, DIN-rail enclosure, D1 mini Pro with external antenna (the distribution
@@ -122,45 +136,46 @@ boards are plastic in a wooden recess, not a metal cabinet).
 
 ---
 
-## Rebuild with 2N7000 (planned)
+## BC517 circuit (since 20.10.2026)
 
-Print plan: [`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf) (A4 landscape, generated by
-`plaene/klingel_mosfet_plan.py`, preview `plaene/klingel-schaltplan-mosfet-vorschau.png`; labels in German).
-
-**Why:** at rest every chime puts its battery voltage (floor 1: 9 V DC) on the button loop; the button shorts it. A
-MOSFET gate via 1 MΩ puts practically no load on the loop and switches at a few volts already.
+Print plan: [`plaene/klingel-platine-bc517.pdf`](plaene/klingel-platine-bc517.pdf) (2 pages A4 landscape, German:
+component side with schematic per floor and test steps, mirrored solder side with jumper list; previews
+`plaene/klingel-platine-bc517-vorschau1.png` / `-vorschau2.png`). Generated by `plaene/klingel_darlington_layout.py bc517`;
+without the argument it produces the substitute with **2 × BC547 as a Darlington** + 1 MΩ per floor
+([`plaene/klingel-platine-darlington.pdf`](plaene/klingel-platine-darlington.pdf)).
 
 | From | Component | To | Note |
 |---|---|---|---|
-| Plus wire of the floor (signal, 9 V at rest) | 1 MΩ | 2N7000 **gate** | |
-| 2N7000 **drain** | – | D5 / D6 / D7 | internal pull-up |
-| 2N7000 **source** | – | common ground | all three sources together |
-| Minus wires of all floors | – | common ground | only allowed if the minus sides can be joined |
-| D1 mini **G** | – | common ground | |
+| Kl.1 of the floor (plus of the chime battery) | 9.1 MΩ | BC517 **base** | yellow = ground floor, green = floor 1, blue = floor 2 |
+| BC517 **collector** | – | D5 / D6 / D7 | internal pull-up |
+| BC517 **emitter** | – | GND rail → D1 mini **G** | all three emitters common |
+| Kl.2 of all floors (grey) | – | GND rail | common return |
 
-| State | Wire | MOSFET | Input |
-|---|---|---|---|
-| Rest | 9 V | conducts | **LOW** |
-| Button pressed | 0 V | blocks | **HIGH** |
+| State | Loop | BC517 | Input | HA |
+|---|---|---|---|---|
+| Idle | battery voltage (3–9.5 V) | conducts | **LOW** | off |
+| Button pressed | ~0 V | off | **HIGH** | pressed + event |
+| HIGH > 30 s | no voltage (battery flat, loose wire) | off | HIGH | "Klingelbatterie leer" |
 
-2N7000 pinout (flat side facing you, legs down): **source · gate · drain**. The optocoupler, the 1N4007 and the 1 kΩ
-are dropped.
+BC517 pinout (CDIL datasheet, flat side facing you, legs down): **C · B · E**. In the layout it is rotated (C at the top,
+E at the bottom, flat side to the left).
 
-**Assumptions that must be measured before soldering** (all still *unverified*):
+**Test sheets (German):** [`plaene/klingel-messblatt-bc517.pdf`](plaene/klingel-messblatt-bc517.pdf) (voltages per floor:
+reference 3V3↔G, Kl.1↔grey, base, pin idle/pressed) and
+[`plaene/klingel-durchgang-bc517.pdf`](plaene/klingel-durchgang-bc517.pdf) (continuity G ↔ grey ↔ GND rail ↔ emitters).
 
-- Each floor has its **own plus wire**, and the minus sides of the three chimes may be joined. Never join two plus wires
-  and never plus with minus – for the chime that is a button press.
-- The wire voltage is enough for the 2N7000: from about 3.5 V. Floor 2 (4.5 V chime) is just above; if it is below,
-  a BC547 (included in the set) is intended.
+**Margin (derived, not measured):** a Darlington does not pull the collector fully to 0 V, ~0.6–0.9 V remain. The
+ESP8266 only reliably reads LOW below ~0.8 V. If the pin sits in that range at idle, the D1 may read "HIGH" – see
+[troubleshooting no. 23](docs/fehlersuche.en.md#23-bc517-channel-does-not-conduct-at-idle).
 
-**Firmware:** **not** changed yet. According to the plan the logic changes: rest = LOW, press = HIGH – the PC817
-variant's `inverted: true` has to go, and the 50 Hz smoothing (`delayed_off: 200ms` / `delayed_on: 230ms`) is to be
-replaced by a simple debounce filter. Exact values are not decided yet.
+> **Historical – 2N7000 (12.–14.10.):** the plan was one 2N7000 with 1 MΩ at the gate per floor
+> ([`plaene/klingel-schaltplan-mosfet.pdf`](plaene/klingel-schaltplan-mosfet.pdf)). Dropped because the ground-floor
+> loop has only ~3 V, too marginal for the 2N7000 gate threshold.
 
 ## Pin assignment and wiring
 
-> This section describes the **PC817 variant** (as of 11.10.), which does not work here. For the rebuild see
-> [Rebuild with 2N7000](#rebuild-with-2n7000-planned).
+> The wire colours and the D1 pin assignment still apply. The "Per floor" table describes the **historical PC817
+> variant** – for the current circuit see [BC517 circuit](#bc517-circuit-since-20102026).
 
 Schematic: [`plaene/klingel_plan.svg`](plaene/klingel_plan.svg) (generated by `plaene/klingel_plan.py`).
 Print version with wire colours (A4 landscape): [`plaene/klingel-schaltplan-farbig.pdf`](plaene/klingel-schaltplan-farbig.pdf)
@@ -196,15 +211,15 @@ Floor = same colour on both sides. **No red** – it is reserved for +5 V.
 
 | D1 pin | GPIO | Function | Entity (expected) |
 |---|---|---|---|
-| D5 | GPIO14 | Ground floor, `INPUT_PULLUP`, inverted | `event.klingel_erdgeschoss` |
-| D6 | GPIO12 | Floor 1, `INPUT_PULLUP`, inverted | `event.klingel_etage_1` |
-| D7 | GPIO13 | Floor 2, `INPUT_PULLUP`, inverted | `event.klingel_etage_2` |
-| G | – | common emitter of the 3 PC817 | |
+| D5 | GPIO14 | Ground floor, `INPUT_PULLUP`, not inverted (since 20.10.) | `event.klingel_erdgeschoss` |
+| D6 | GPIO12 | Floor 1, `INPUT_PULLUP`, not inverted (since 20.10.) | `event.klingel_etage_1` |
+| D7 | GPIO13 | Floor 2, `INPUT_PULLUP`, not inverted (since 20.10.) | `event.klingel_etage_2` |
+| G | – | common emitter of the 3 BC517 + grey return | |
 | USB | – | power via USB power supply | |
 | D1 (GPIO5) | – | reserved for optional "chime mute" relay | |
 | D3 / D4 / D8 | – | **do not use** (boot pins) | |
 
-Which wire in the junction box belongs to which floor is **not yet known** → [docs/einmessen.en.md](docs/einmessen.en.md#1-assigning-the-wires).
+Wire assignment and polarity have been measured since 14./20.10. (see status).
 
 ---
 
@@ -259,15 +274,16 @@ File: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | Device name / hostname | `klingel` (→ `klingel.local`) |
 | Friendly name | `Klingel` (doorbell) |
 | Board | `esp8266` / `d1_mini` |
-| IP | **none yet** – assign a static one in the router (as with the other ESPs); still open after the first flash on 11.10. |
+| IP | static in the router (11.10.) |
 | `substitutions` | `taster_1: Erdgeschoss`, `taster_2: Etage 1`, `taster_3: Etage 2` (button 1: ground floor, button 2: floor 1, button 3: floor 2) |
-| Filters per input | `delayed_off: 200ms`, **then** `delayed_on: 230ms` (anchor `&klingelfilter`) – order corrected since 11.10., see troubleshooting no. 1 |
+| Inputs | `INPUT_PULLUP`, `inverted: false` (idle LOW, press HIGH) |
+| Filters per input | `delayed_on: 30ms`, `delayed_off: 100ms` (anchor `&klingelfilter`) – DC, only bounce/spikes are discarded (until 19.10.: 200/230 ms for 50 Hz half-waves, see troubleshooting no. 1) |
 | Logger | `INFO` |
 | API | encrypted (`!secret klingel_api_key`) |
 | OTA | `platform: esphome` |
 | Fallback hotspot | SSID `Klingel-Fallback`, password `!secret klingel_ap_password`, with captive portal |
 
-### Entities in Home Assistant (after adoption – check names then)
+### Entities in Home Assistant
 
 | Entity (expected) | Type | Meaning |
 |---|---|---|
@@ -276,6 +292,7 @@ File: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 | `binary_sensor.klingel_status` | status | ESP online |
 | `sensor.klingel_wlan_signal` | signal (dBm), every 120 s | |
 | `sensor.klingel_laufzeit` | uptime, every 600 s | |
+| `binary_sensor.*_klingelbatterie_leer` | problem | ON if a channel shows "pressed" for more than 30 s: chime battery flat or loose wire (since 20.10.) |
 
 ### Secrets
 
@@ -292,6 +309,8 @@ File: [`firmware/klingel.yaml`](firmware/klingel.yaml)
 3. In HA, add the ESPHome integration with host and encryption key; set a static IP in the router.
 4. In the **ESPHome Builder**: add the secrets, "New device" → skip → paste YAML, do **not** install.
    From then on, updates **via OTA** from the Builder.
+
+As of 20.10.: updates go via OTA from the ESPHome Builder (last one: the BC517 firmware on 20.10.).
 
 As of 11.10.: steps 1 and 2 done (first flash locally via USB, API handshake with the real key ok). In the Builder the
 device is created as `klingel.yaml` and the secrets are added. HA adoption and the static IP in the router are done
@@ -313,8 +332,8 @@ device is created as `klingel.yaml` and the secrets are added. HA adoption and t
 | [docs/verlauf.en.md](docs/verlauf.en.md) | decisions and discarded variants (PC814, transformer supply, diode tap) |
 
 **Short version of the sequence:** check parts ✅ → solder board ✅ → first flash ✅ → bench test ✅ →
-HA/Builder/static IP ✅ → installation with PC817 ✗ (12.10., battery chimes) → **measure polarity per floor (V⎓)** →
-rebuild with 2N7000 → adapt firmware → ring once per floor → create HA package → Alexa routines.
+HA/Builder/static IP ✅ → installation with PC817 ✗ (12.10., battery chimes) → measure polarity per floor ✅ →
+rebuild with BC517 ✅ → adapt firmware ✅ → ring once per floor ✅ (20.10.) → **create HA package** → Alexa routines.
 
 **Safety:** Before opening any terminals, switch off the circuit breaker of the bell transformer. According to a visual
 inspection (Jens, 06.10.) the junction box contains only doorbell wires. The 230 V side of the transformer is the
@@ -370,11 +389,12 @@ Check before installation: start URL of the panels on floors 1/2 (the EZpad on t
 | 12a | Print enclosure | Jens | started 11.10. |
 | 12b | Installation at the junction box and acceptance test ([einbau.en.md](docs/einbau.en.md) C/D) | – | failed with PC817 on 12.10.; again after 14–16 |
 | 13 | optional: "chime mute" relay | – | later, not commissioned |
-| 14 | **Find the two wires carrying chime voltage per floor and measure the polarity** (multimeter on V⎓, check the range on a known point first) | Jens | before the rebuild |
-| 15 | Transistor set (2N7000) | – | ordered, delivery **14.10.** |
-| 16 | Rebuild: remove PC817/1N4007/1 kΩ, 3 × 2N7000 + 3 × 1 MΩ according to `plaene/klingel-schaltplan-mosfet.pdf` | Jens | from 14.10. |
-| 17 | Switch firmware to the new logic (remove `inverted`, debounce filter instead of 50 Hz smoothing), flash via OTA, acceptance test per floor | Claude/Jens | after 16 |
-| 18 | Clarify side finding of 12.10.: event arrived in HA, `binary_sensor.klingel_*_gedruckt` never showed "on" | – | after 17 |
+| 14 | ✅ Chime wires and polarity measured per floor (Kl.1 = plus) | Jens | 14.10. / 20.10. |
+| 15 | ✅ Parts: BC517 + 9.1 MΩ (reichelt) | – | delivered 20.10. |
+| 16 | ✅ Rebuild: PC817/1N4007/1 kΩ out, 3 × BC517 + 3 × 9.1 MΩ per `plaene/klingel-platine-bc517.pdf` | Jens | 20.10. |
+| 17 | ✅ Firmware switched (OTA), acceptance test per floor passed | Claude/Jens | 20.10. |
+| 18 | ✅ Side finding 12.10.: with BC517 event and binary sensor arrive together | – | 20.10. |
+| 19 | Watch the one extra ring of the ground-floor chime during the first test (20.10.) | Jens | ongoing |
 
 ---
 
@@ -388,14 +408,20 @@ Check before installation: start URL of the panels on floors 1/2 (the EZpad on t
 | `docs/fehlersuche.md` | failure patterns (troubleshooting) |
 | `docs/verlauf.md` | project history and discarded variants |
 | `docs/*.en.md` | English versions of the docs |
-| `firmware/klingel.yaml` | ESPHome configuration (D1 mini, 3 inputs, 3 events) |
+| `firmware/klingel.yaml` | ESPHome configuration (D1 mini, 3 inputs, 3 events, battery-flat sensor) – BC517 state |
 | `firmware/secrets.example.yaml` | template for the secrets (without real values) |
 | `ha/klingel.yaml` | HA package draft (trigger templates for Alexa, push/panel automation) |
-| `plaene/klingel_plan.svg` | schematic per floor: 1 kΩ, PC817, 1N4007, outputs D5/D6/D7 |
+| `plaene/klingel-platine-bc517.pdf` | **current plan**: board with 3 × BC517 + 9.1 MΩ, 2 pages (assembly + schematic + test steps, solder side + jumper list), as of 20.10., German |
+| `plaene/klingel-platine-bc517-vorschau1.png` / `-vorschau2.png` | previews of both pages |
+| `plaene/klingel-platine-darlington.pdf` | substitute with 2 × BC547 as Darlington + 1 MΩ per floor (16.10., not built) |
+| `plaene/klingel_darlington_layout.py` | generates both board plans (`python3 klingel_darlington_layout.py bc517` or without argument); run in `plaene/` |
+| `plaene/klingel-messblatt-bc517.pdf` / `klingel_messblatt_bc517.py` | measuring sheet voltages per floor after the rebuild (20.10., German) |
+| `plaene/klingel-durchgang-bc517.pdf` / `klingel_durchgang_bc517.py` | continuity check of the GND connections (20.10., German) |
+| `plaene/klingel_plan.svg` | *historical:* schematic per floor: 1 kΩ, PC817, 1N4007, outputs D5/D6/D7 |
 | `plaene/klingel_plan.py` | generates the schematic (matplotlib); writes to `doku/klingel_plan.svg` relative to the working directory – adjust path if needed |
-| `plaene/klingel-schaltplan-farbig.pdf` | print sheet A4 landscape: schematic with wire colours, colour scheme and component colour codes |
+| `plaene/klingel-schaltplan-farbig.pdf` | *historical:* print sheet A4 landscape: schematic with wire colours, colour scheme and component colour codes |
 | `plaene/klingel_plan_druck.py` | generates the colour PDF; reads `klingel_plan.py` from the working directory (so run it in `plaene/`) |
-| `plaene/klingel-schaltplan-mosfet.pdf` | print sheet A4 landscape: rebuild with 3 × 2N7000 + 3 × 1 MΩ, polarity measuring instructions, 2N7000 pinout (12.10., German) |
+| `plaene/klingel-schaltplan-mosfet.pdf` | *historical, dropped:* print sheet A4 landscape: rebuild with 3 × 2N7000 + 3 × 1 MΩ, polarity measuring instructions, 2N7000 pinout (12.10., German) |
 | `plaene/klingel-schaltplan-mosfet-vorschau.png` | preview of the MOSFET plan |
 | `plaene/klingel_mosfet_plan.py` | generates PDF and preview (matplotlib); run it in `plaene/` |
 | `plaene/klingel-messblatt-abzweigdose.pdf` | measuring sheet A4 portrait for the wire mapping (11.10., German) – **still based on the assumption "transformer drives the chime" (V~)**, kept for traceability only |

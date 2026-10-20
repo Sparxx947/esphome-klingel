@@ -6,6 +6,10 @@ Eine Klingel hat keine Messwerte im engeren Sinn. „Einmessen“ heißt hier: h
 gehört, die **Gong-Spannung** bestimmen, die Bauteilwerte dagegen nachrechnen, Bauteile und Platine **vor** dem Einbau
 prüfen und nach dem Einbau Filter und WLAN kontrollieren.
 
+> **Stand 20.10.2026:** Die Abschnitte 2–6 beziehen sich auf die historische PC817-Variante. Für die BC517-Schaltung
+> gelten Abschnitt 0 (Messbereich, Gerät am anderen Ende) und das Messblatt
+> [`plaene/klingel-messblatt-bc517.pdf`](../plaene/klingel-messblatt-bc517.pdf).
+
 Werte aus den Projektnotizen sind belegt; mit *(Vorschlag)* oder *(ungeprüft)* markierte Schritte stehen so nicht in den
 Notizen bzw. wurden noch nicht am Gerät nachvollzogen.
 

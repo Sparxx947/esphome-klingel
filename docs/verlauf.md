@@ -33,6 +33,16 @@
 | 12.10. ~17:15–17:40 | Teile | Keine MOSFETs/Transistoren im Bestand, 1 MΩ aber vorhanden. Erwogen: 2N7000 im 100er-Beutel und ein Widerstandssortiment; bestellt wurde stattdessen ein **Transistor-Set mit 24 Typen** (enthält 2N7000 und BC547 als Ausweichlösung für Etage 2), Lieferung 14.10. |
 | 12.10. | Nebenbefund | Beim Einbautest kam ein Event in HA an, `binary_sensor.klingel_*_gedruckt` zeigte dabei nie „on“. **Ungeklärt.** |
 | 13.10. | Abgleich und Doku | Firmware lokal = ESPHome Builder (geprüft) = `firmware/klingel.yaml` im Repo (bis auf die bewusst entfernte MAC-Adresse). **Firmware noch nicht auf 2N7000 umgestellt.** Repo nachgezogen: Status, MOSFET-Plan und Messblatt in `plaene/`, Mess-Lehre in einmessen/fehlersuche. Offen: Polarität je Etage messen, Umbau ab 14.10. |
+| 14.10. | DC-Messung | Am Gong nur Gleichspannung; beim Klingeln fällt sie am Gong auf **0 V** → Kontakteingang bestätigt (Taster schließt die Batterie-Schleife kurz). Je Etage: Klemme 1 = Gong-Ader, Klemme 2 = Rückkanal. Etage 1 ~9,5 V, Erdgeschoss **2 × AA ≈ 3 V** (2,7 V in der Dose), Etage 2 zunächst ohne Batterien (stumm, am 15.10. mit 3 × Babyzelle bestückt). |
+| 14.10. | 2N7000 verworfen | Für das Erdgeschoss mit ~3 V ist die Gate-Schwelle des 2N7000 zu knapp → **BC517** (Darlington) bestellt, Basiswiderstand 10 MΩ. |
+| 16.10. | Neues Platinenlayout | Arbeitsfeld 13 × 13 Löcher mittig auf der Minilötplatine (Gehäuse passt weiter), TO-92 gedreht. Zwei Varianten aus einem Skript: 3 × BC517 + 10 MΩ und Ersatz 3 × (2 × BC547 als Darlington) + 1 MΩ für den Fall, dass die Lieferung ausbleibt (`plaene/klingel_darlington_layout.py`). |
+| 17.10. | Lieferverzug | 10 MΩ ausverkauft → Tausch auf **9,1 MΩ**; passt ohne Layoutänderung (gerechnet: Erdgeschoss ~0,2 µA Basisstrom, Schleife bleibt bei ~2,8 V). |
+| 20.10. | Lieferung + Umbau | BC517 und 9,1 MΩ da, Plan auf 9,1 MΩ umgestellt (Farbringe weiß–braun–blau). Platine umgebaut und angeschlossen. |
+| 20.10. ~15:15 | Erster Test ✗ | Alle drei Kanäle in Ruhe HIGH, kein Event bei 9 Drücken (mit noch alter, invertierter Firmware wäre „Ruhe LOW“ als Dauer-„gedrückt“ sichtbar gewesen). Einmal läutete der Erdgeschoss-Gong zusätzlich (ungeklärt). |
+| 20.10. ~15:30–15:55 | Fehlersuche | Messblatt (`plaene/klingel-messblatt-bc517.pdf`): Kontrollmessung 3V3↔G = +3,3 V; Kl.1 gegen grau **+3,1 / +9,47 / +5,5 V** (Polarität richtig). Messung „G gegen Ader“ ergab dagegen −2 / −2 / −4 V – daraus wurde fälschlich auf eine fehlende GND-Verbindung geschlossen; die Durchgangsprüfung (`plaene/klingel-durchgang-bc517.pdf`) zeigte alle GND-Verbindungen in Ordnung. Wie die −2/−4 V zustande kamen, ist **ungeklärt**. |
+| 20.10. 16:03 | Läuft | Nach einem weiteren Eingriff an der Platine (nicht im Einzelnen festgehalten) stehen alle drei Kanäle in Ruhe richtig (LOW); Testdrücke Etage 1/2 erkannt. |
+| 20.10. 16:13 | Firmware BC517 | Per OTA aus dem ESPHome Builder: `inverted: false`, `delayed_on: 30ms` / `delayed_off: 100ms`, neuer Sensor „Klingelbatterie leer“ (ein Kanal > 30 s gedrückt). |
+| 20.10. 16:17 | **Abnahme bestanden** | Erdgeschoss, Etage 1, Etage 2 nacheinander → je genau ein Event (gedrückt 0,31 / 0,37 / 0,34 s), kein Übersprechen. Event kommt ~0,1 s vor dem Binärsensor – der Nebenbefund vom 12.10. ist damit erledigt. |
 
 ## Verworfene Varianten
 
@@ -45,5 +55,6 @@
 | PC814 | nicht kurzfristig lieferbar |
 | Versorgung des Tischtests über 18650-Shield (Powerbank-Platine) | keine Erkennung (Lastabschaltung vermutet) → nackte Zelle oder Labornetzteil |
 | Tischtest mit 5 V vom D1 mini (Vorschlag aus `einmessen.md`) | G am D1 ist belegt, die Trennung Klingel-/ESP-Seite bliebe nicht erhalten → separate Batterie |
-| **Optokoppler-Abgriff (PC817 + 1N4007 + 1 kΩ)** | 12.10.: die Gongs sind Batteriegongs mit Kontakteingang, der Trafo ist nicht im Gong-Kreis → die LED bekommt nie Strom. Ersatz: 2N7000 + 1 MΩ (geplant) |
+| **Optokoppler-Abgriff (PC817 + 1N4007 + 1 kΩ)** | 12.10.: die Gongs sind Batteriegongs mit Kontakteingang, der Trafo ist nicht im Gong-Kreis → die LED bekommt nie Strom. Ersatz: BC517 + 9,1 MΩ (seit 20.10.) |
+| 2N7000 + 1 MΩ | 14.10.: Erdgeschoss-Schleife nur ~3 V, Gate-Schwelle zu knapp → BC517 |
 | ESP zwischen Taster und Gong (Gong über PC817 auslösen) bzw. ESP32-ADC mit Vorspannungsteiler | am 12.10. kurz erwogen – auf Grundlage der DC-Fehlmessung, damit hinfällig |

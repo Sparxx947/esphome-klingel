@@ -26,9 +26,11 @@ Kennzeichnung: **belegt** = in den Projektnotizen/anderen ESP-Projekten tatsäch
 | 17 | Kanal reagiert nicht, Diodentest zeigt „OL“ oder falsche Werte | Minilötplatine hat **einzelne Lötpunkte ohne Leiterbahnen** – Verbindung nicht hergestellt (11.10. fehlten Gegendiode ↔ Pin 1/Pin 2, Widerstand ↔ Pin 1, Pin 2 ↔ Rückleiter) | alle Verbindungen auf der Lötseite mit Draht/Zinnbrücke herstellen, je Kanal Diodentest (1,08 V / 0,60 V) | belegt (11.10.) |
 | 18 | Tischtest: keine Erkennung mit 18650-Shield als Quelle | Shield (Powerbank-Platine) schaltet bei ~8 mA Last den Ausgang vermutlich nicht ein (nicht weiter untersucht) | nackte 18650-Zelle oder Labornetzteil nehmen | belegt (11.10.), Ursache vermutet |
 | 19 | Messwerte ergeben keinen Sinn (z. B. negativer Wert „auf AC“, Ruhe 0 V / Druck 0,3 V) | Multimeter auf dem falschen Bereich (DC statt AC) | Bereich am bekannten Anker prüfen (Trafo 2–4 auf V~ = 8 V), siehe unten | **belegt** (12.10.) |
-| 20 | Gong läutet normal, PC817-Abgriff erkennt nichts – an keinem Trafo-Pol | Gong ist ein **Batteriegong mit Kontakteingang**; der Trafo ist nicht im Gong-Kreis, durch die LED fließt nie Strom | Gong ansehen (Batterie? nur 2 Drähte?), DC an den Gong-Klemmen messen; Abgriff mit MOSFET (2N7000 + 1 MΩ) statt Optokoppler | **belegt** (12.10.), Umbau geplant |
+| 20 | Gong läutet normal, PC817-Abgriff erkennt nichts – an keinem Trafo-Pol | Gong ist ein **Batteriegong mit Kontakteingang**; der Trafo ist nicht im Gong-Kreis, durch die LED fließt nie Strom | Gong ansehen (Batterie? nur 2 Drähte?), DC an den Gong-Klemmen messen; Abgriff mit BC517 + 9,1 MΩ statt Optokoppler | **belegt** (12.10.), umgebaut 20.10. |
 | 21 | Einzelne Treffer direkt nach dem Anklemmen, oft mehrere Etagen gleichzeitig | **Anklemmstöße**, kein Tastendruck | nicht als Funktionsnachweis werten; nach dem Anklemmen erst mehrere echte Drücke je Etage prüfen | **belegt** (12.10.) |
-| 22 | Event kommt in HA an, `binary_sensor.klingel_*_gedruckt` zeigt dabei nie „on“ | **ungeklärt** | nach dem Umbau auf 2N7000 erneut prüfen | beobachtet (12.10.), offen |
+| 22 | Event kommt in HA an, `binary_sensor.klingel_*_gedruckt` zeigt dabei nie „on“ | beim PC817-Aufbau ungeklärt | mit BC517 nicht mehr aufgetreten: Event und Binärsensor kommen zusammen an | beobachtet (12.10.), **erledigt** 20.10. |
+| 23 | BC517-Aufbau: alle Kanäle in Ruhe HIGH (alte Firmware: „aus“, neue: Dauer-„gedrückt“), kein Event | Basis bekommt keinen Strom (Polarität Kl.1/Kl.2 vertauscht, Brücke Ader → R → Basis fehlt), Emitter nicht an GND, BC517 gedreht – oder der Pin bleibt über der LOW-Schwelle | Messblatt `plaene/klingel-messblatt-bc517.pdf` und Durchgangsprüfung `plaene/klingel-durchgang-bc517.pdf` abarbeiten, siehe unten | **belegt** (20.10.), Ursache im Einzelnen nicht festgehalten |
+| 24 | „Klingelbatterie leer“ meldet | ein Kanal länger als 30 s HIGH: Gong-Batterie leer, Ader lose oder Basisstrecke unterbrochen | Gong-Batterie und Spannung Kl.1 ↔ grau messen | abgeleitet (Sensor seit 20.10.) |
 
 ---
 
@@ -120,6 +122,30 @@ Punkt mit **bekannter** Spannung: Trafo Klemme 2–4 auf AC = 8 V.
 Zweite, schwerere Lehre: Vor dem Entwurf eines Abgriffs **das Gerät am anderen Ende ansehen** (Foto, Typenschild,
 Batterie?). Die Annahme „der Trafo treibt den Gong“ war nie gemessen – siehe Nr. 20 und
 [einmessen.md 0](einmessen.md#0-messbereich-und-gerät-am-anderen-ende-zuerst-prüfen).
+
+---
+
+## 23. BC517-Kanal leitet in Ruhe nicht
+
+**Belegt am 20.10.2026** (erster Anschluss nach dem Umbau, alle drei Kanäle). Prüfreihenfolge:
+
+| Schritt | Messung (Multimeter V⎓, schwarz zuerst genannt) | Soll | Wenn nicht |
+|---|---|---|---|
+| 0 | G → 3V3 am D1 | +3,2 … +3,4 V | Messbereich/Messleitungen prüfen – erst danach weiter |
+| 1 | grau → Kl.1-Ader der Etage | **Plus**, Batteriespannung (hier 3,1 / 9,47 / 5,5 V) | negativ: Kl.1/Kl.2 vertauscht, Basis bekommt Minus |
+| 2 | G → BC517 Mittelbein (Basis) | +0,9 … +1,4 V | ≈ 0 V: Ader → R → Basis offen; ≈ Wert aus 1: Emitter nicht an GND oder BC517 gedreht |
+| 3 | G → Pin D5/D6/D7 in Ruhe | unter 0,8 V | 0,8–2,5 V: Grenzbereich (siehe unten); ≈ 3,3 V: Kollektor-Brücke fehlt |
+| 4 | Durchgang G ↔ grau, G ↔ GND-Schiene, G ↔ jeder Emitter | piept | Brücke nachlöten |
+
+**Grenzbereich (abgeleitet, nicht gemessen):** Ein Darlington hat eine Sättigungsspannung von ~0,6–0,9 V (die
+Basis-Emitter-Spannung des zweiten Transistors bleibt stehen). Der ESP8266 erkennt LOW sicher erst unter ~0,25 × VDD
+≈ 0,8 V. Liegt der Pin in Ruhe knapp darüber, liest der D1 „HIGH“. Abhilfe wäre ein einzelner NPN statt Darlington
+(mehr Basisstrom nötig, also kleinerer Basiswiderstand) oder ein externer Pull-up mit größerem Strom.
+
+**Messfalle 20.10.:** „G gegen Ader“ ergab −2 / −2 / −4 V, obwohl grau und G nachweislich verbunden waren und
+„grau gegen Ader“ +3,1 / +9,47 / +5,5 V zeigte. Der Schluss „G schwebt“ war falsch; die Durchgangsprüfung hat ihn
+widerlegt. Woher die Minuswerte kamen, ist ungeklärt. **Spannungen gegen den Rückleiter (grau) messen, nicht gegen G,
+und Verbindungen per Durchgang belegen.**
 
 ---
 

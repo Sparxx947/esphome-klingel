@@ -2,14 +2,14 @@
 # Hardware: Wemos D1 mini V3.0.0 (ESP8266), 3 Taster an der klassischen Anlage
 # Versorgung: USB-Netzteil an der Schuko-Steckdose im linken Verteiler (NICHT aus dem Klingeltrafo, Hager ST303 hat nur 8 VA)
 # Abgriff: Abzweigdose oben links ueber dem linken Verteiler (alle Etagenadern + Gong-Rueckleiter, nur Kleinspannung)
-# Je Etage ein PC817C + 1N4007 antiparallel (Ring an Pin 1) + 1 kΩ vor Pin 1:
-#     Etagenader → 1 kΩ → Pin 1 (Anode), Pin 2 (Kathode) → Gong-Rueckleiter (grau)
-#     Pin 4 (Kollektor) → D5 / D6 / D7, Pin 3 (Emitter) → G; interner Pull-up, keine externen Widerstaende
+# Seit 20.10.2026 je Etage ein BC517 (Darlington) + 9,1 MΩ (Batteriegongs mit Kontakteingang, Schleife Kl.1 ↔ Kl.2):
+#     Kl.1 (Plus der Gong-Batterie) → 9,1 MΩ → Basis, Emitter → G = grau (alle Kl.2), Kollektor → D5 / D6 / D7 (Pull-up)
+#     Ruhe: Schleifenspannung liegt an → BC517 leitet → Pin LOW.  Taster schliesst die Schleife kurz → Pin HIGH.
 #     Erdgeschoss → D5 (GPIO14, gelb), Etage 1 → D6 (GPIO12, gruen), Etage 2 → D7 (GPIO13, blau), G schwarz
 #     (D3/D4/D8 sind Boot-Pins, D1/D2 bleiben fuer das optionale Relais frei)
-#   Nur eine Halbwelle schaltet (50 Pulse/s) — das glaetten die Filter unten.
-# Tischtest 11.10.2026 mit 18650-Zelle bestanden (alle 3 Kanaele, kein Uebersprechen).
-# Stand 11.10.2026 — Notiz project_ha_klingel
+#     Dauer-HIGH = Schleife ohne Spannung (Gong-Batterie leer, Ader lose) → Sensor "Klingelbatterie leer"
+#     Plan: plaene/klingel-platine-bc517.pdf
+# Stand 20.10.2026 (vorher PC817-Optokoppler, Tischtest 11.10.) — Notiz project_ha_klingel
 
 substitutions:
   name: klingel
@@ -22,7 +22,7 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  comment: Tuerklingel Haustuer (Optokoppler am Gong)
+  comment: Tuerklingel Haustuer (BC517 an den Gong-Schleifen)
 
 esp8266:
   board: d1_mini
@@ -71,21 +71,18 @@ binary_sensor:
     id: taster_1
     name: ${taster_1} gedrückt
     icon: mdi:doorbell
-    pin: { number: GPIO14, mode: INPUT_PULLUP, inverted: true }   # D5
+    pin: { number: GPIO14, mode: INPUT_PULLUP, inverted: false }   # D5
     filters: &klingelfilter
-      # Reihenfolge wichtig (11.10.): PC817 + Gegendiode liefert bei 50 Hz nur ~10 ms EIN je 20 ms.
-      # delayed_on zuerst haette jedes EIN verworfen (AUS kommt vor Ablauf) → nie ein Druck erkannt.
-      # delayed_off verlaengert jedes EIN um 200 ms – auch eine Stoerspitze. Daher delayed_on = 200 + 30 ms:
-      # Spitzen < 30 ms bleiben verworfen, ein echter Druck meldet sich nach ~0,23 s.
-      - delayed_off: 200ms    # erst Halbwellen-Luecken (≤ 10–20 ms) zu Dauer-EIN glaetten
-      - delayed_on: 230ms     # dann alles verwerfen, was vor der Glaettung kuerzer als ~30 ms war
+      # Gleichspannung, keine Halbwellen mehr — nur Tasterprellen und Stoerspitzen verwerfen
+      - delayed_on: 30ms
+      - delayed_off: 100ms
     on_press:
       - event.trigger: { id: event_1, event_type: gedrueckt }
   - platform: gpio
     id: taster_2
     name: ${taster_2} gedrückt
     icon: mdi:doorbell
-    pin: { number: GPIO12, mode: INPUT_PULLUP, inverted: true }   # D6
+    pin: { number: GPIO12, mode: INPUT_PULLUP, inverted: false }   # D6
     filters: *klingelfilter
     on_press:
       - event.trigger: { id: event_2, event_type: gedrueckt }
@@ -93,13 +90,21 @@ binary_sensor:
     id: taster_3
     name: ${taster_3} gedrückt
     icon: mdi:doorbell
-    pin: { number: GPIO13, mode: INPUT_PULLUP, inverted: true }   # D7
+    pin: { number: GPIO13, mode: INPUT_PULLUP, inverted: false }   # D7
     filters: *klingelfilter
     on_press:
       - event.trigger: { id: event_3, event_type: gedrueckt }
 
   - platform: status
     name: Status
+
+  # Ein Kanal laenger als 30 s "gedrueckt" = Schleife ohne Spannung (Batterie leer / Ader lose), kein Besucher
+  - platform: template
+    name: Klingelbatterie leer
+    device_class: problem
+    lambda: return id(taster_1).state || id(taster_2).state || id(taster_3).state;
+    filters:
+      - delayed_on: 30s
 
 sensor:
   - platform: wifi_signal
