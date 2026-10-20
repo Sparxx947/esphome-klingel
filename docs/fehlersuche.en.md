@@ -151,6 +151,10 @@ smaller base resistor) or an external pull-up with more current.
 disproved it. Where the negative values came from is unexplained. **Measure voltages against the return (grey), not
 against G, and prove connections with a continuity test.**
 
+**Extra ring during the test:** on 20.10. the ground floor rang once more right after the test presses. That was a
+real visitor, not crosstalk between floors. Cross-check: in the acceptance test every press triggered exactly one event
+on exactly one floor.
+
 ---
 
 ## Chime gets quieter or stops ringing

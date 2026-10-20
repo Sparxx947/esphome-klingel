@@ -1,0 +1,49 @@
+# Skript script.klingel_kamera_auf_panel — in HA angelegt am 20.10.2026.
+# Format: Skripteditor → „In YAML bearbeiten“, Skript-ID klingel_kamera_auf_panel.
+# Anpassen: <home-assistant-host> (Adresse, unter der die Panels HA oeffnen, z. B. http://homeassistant.local:8123).
+alias: "Klingel: Kamera groß auf Wandpanel"
+description: >-
+  Weckt ein Wandpanel (Fully Kiosk), zeigt dauer Sekunden das Haustuer-Livebild (Dashboard klingel-kamera)
+  und laedt danach wieder die Start-URL.
+mode: parallel
+max: 6
+icon: mdi:doorbell-video
+fields:
+  panel:
+    name: Wandpanel (Fully Kiosk)
+    required: true
+    selector: { device: { integration: fully_kiosk } }
+  bildschirm:
+    name: Bildschirm-Schalter
+    required: true
+    selector: { entity: { domain: switch } }
+  wecken:
+    name: Bewegung auslösen (beendet Bildschirmschoner)
+    required: true
+    selector: { entity: { domain: button } }
+  start_url:
+    name: Start-URL laden
+    required: true
+    selector: { entity: { domain: button } }
+  dauer:
+    name: Anzeigedauer (s)
+    default: 90
+    selector: { number: { min: 10, max: 600, unit_of_measurement: s } }
+sequence:
+  - alias: Bildschirm an
+    action: switch.turn_on
+    target: { entity_id: "{{ bildschirm }}" }
+    continue_on_error: true
+  - alias: Bildschirmschoner beenden
+    action: button.press
+    target: { entity_id: "{{ wecken }}" }
+    continue_on_error: true
+  - alias: Kamera-Dashboard laden
+    action: fully_kiosk.load_url
+    data:
+      device_id: "{{ panel }}"
+      url: http://<home-assistant-host>:8123/klingel-kamera/haustuer
+  - delay: { seconds: "{{ dauer | default(90) | int }}" }
+  - alias: Zurück zur Startseite
+    action: button.press
+    target: { entity_id: "{{ start_url }}" }

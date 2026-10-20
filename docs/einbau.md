@@ -126,9 +126,13 @@ Vertauschte Etagen: entweder die Adern an der Platine tauschen oder die `substit
 
 ## E. Home Assistant
 
-1. `ha/klingel.yaml` als Paket anlegen (Entitätsnamen gegen die tatsächlich adoptierten prüfen).
-2. Test je Etage: Push geht an die richtigen Empfänger (EG → Bewohner EG; E1/E2 → Bewohner Etage 1/2), Bild der
-   Haustürkamera dabei, alle drei Wandpanels wachen auf, zeigen die Übersicht und das Overlay.
-3. Start-URL der Panels Etage 1 und Etage 2 prüfen.
+Seit 20.10.2026 umgesetzt – siehe [home-assistant.md](home-assistant.md).
+
+1. Dashboard, Skript und Automation aus `ha/klingel-kamera-dashboard.yaml`, `ha/klingel-kamera-skript.yaml` und
+   `ha/klingel-automation.yaml` in der HA-Oberfläche anlegen (Platzhalter ersetzen).
+2. Test je Etage: Push mit Kamerabild kommt an; nur das Panel dieser Etage zeigt 90 s das Livebild und kehrt dann zur
+   Startseite zurück.
+3. Der frühere Ablauf (Paket `ha/klingel.yaml`, alle drei Panels wecken, Overlay) ist historisch – Entwurf in
+   `ha/historisch/`.
 4. Alexa: `binary_sensor.klingel_erdgeschoss/_etage_1/_etage_2` in `/config/alexa.yaml` aufnehmen, Gerätesuche,
    je Etage eine Routine mit Ankündigung.

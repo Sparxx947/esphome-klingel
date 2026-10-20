@@ -30,9 +30,8 @@ Notes for rebuilding this in another house:
 
 - **Secrets:** copy `firmware/secrets.example.yaml` to `secrets.yaml` (or create it in the ESPHome Builder) and
   replace Wi-Fi name, Wi-Fi password, API key and hotspot password with your own values.
-- **HA package:** in `ha/klingel.yaml`, replace the notify services `notify.mobile_app_handy_*` with your own phone
-  services, as well as the entity IDs of the camera (`camera.haustuer_standardauflosung`) and of the wall panels
-  (`switch.wandpanel_*`, `button.wandpanel_*`, `notify.wandpanel_*`).
+- **Home Assistant:** in `ha/klingel-*.yaml`, replace the placeholders in angle brackets (phone notify service,
+  camera, Fully Kiosk devices and entities, HA address) – table in [docs/home-assistant.en.md](docs/home-assistant.en.md#rebuilding).
 - **Look at the chime first:** if it has its own battery and only two wires to the button (contact input), the BC517
   circuit of this repo fits. If the chime is driven by the bell transformer (AC at the chime while pressing), the
   historical optocoupler variant (PC817 + reverse diode) fits.
@@ -73,7 +72,8 @@ press. It therefore comes **before** `delayed_on: 230ms` – the reverse order w
 > **In short:** in operation. Board with 3 × BC517 + 9.1 MΩ connected at the junction box, firmware switched via OTA
 > from the ESPHome Builder (not inverted, 30/100 ms debounce, "Klingelbatterie leer" sensor). Acceptance test on 20.10.:
 > one press per floor → exactly one event (pressed 0.31 / 0.37 / 0.34 s), no other floor triggered.
-> **Open:** create the HA package (push, panels, Alexa).
+> HA integration accepted on 20.10. 17:03: push with camera image to the phone, live image for 90 s on the wall panel
+> of that floor ([docs/home-assistant.en.md](docs/home-assistant.en.md)).
 
 | Area | Status | Date |
 |---|---|---|
@@ -103,7 +103,7 @@ press. It therefore comes **before** `delayed_on: 230ms` – the reverse order w
 | ESPHome Builder | created as `klingel.yaml`, secrets added, device online ✔ | 11.10. |
 | Adoption in HA | ✔ adopted: `event.klingel_erdgeschoss` / `_etage_1` / `_etage_2`, `binary_sensor.klingel_*_gedruckt`, status, Wi-Fi signal, uptime | 11.10. |
 | Event `gedrueckt` only after the OFF in the log | ✔ resolved: in HA the event arrives **on press** (test 11.10.: event 49.818 s, binary sensor ON 49.922 s, OFF 53.588 s). The delay was only the log client's output. ([Troubleshooting no. 16](docs/fehlersuche.en.md#16-event-appears-only-after-the-off)) | 11.10. |
-| HA package `ha/klingel.yaml` | **draft**, YAML parsed, lockout logic tested in HA, **not yet created in HA** | 04./06.10. |
+| HA integration | ✔ **in operation**: push with camera image per floor, live image 90 s on that floor's panel; accepted ground floor + floor 1 (panel floor 2 had no power). Old draft `ha/historisch/` never created | 20.10. |
 | Enclosure | **designed** (`gehaeuse/`), printing started on 11.10. (completion not explicitly confirmed in the notes) | 11.10. |
 | Side finding 12.10. | ✔ **resolved**: with BC517 the event and binary sensor "on" arrive together (event ~0.1 s before the binary sensor) | 12.10. / 20.10. |
 | One extra ring ground floor | **unexplained**: during the first test on 20.10. the ground-floor chime rang once more; not seen again during acceptance | 20.10. |
@@ -343,27 +343,16 @@ electrician's job.
 
 ## Home Assistant integration
 
-File: [`ha/klingel.yaml`](ha/klingel.yaml) – **draft as an HA package, not yet created in HA.**
+**In operation since 20.10.2026** – details, rebuilding and acceptance in [docs/home-assistant.en.md](docs/home-assistant.en.md).
 
 | Building block | Function |
 |---|---|
-| 3 trigger-template `binary_sensor` "Klingel Erdgeschoss / Etage 1 / Etage 2" (doorbell ground floor / floor 1 / floor 2; device_class `motion`, `auto_off: 60`) | signal for a separate **Alexa routine** per floor (same pattern as the 3D-print notification) |
-| Automation `klingel_haustuer_meldung` | push with image from the front-door camera (`camera.haustuer_standardauflosung`, Reolink E1 Pro) and the floor in the title |
-| Recipients | Ground floor → residents ground floor; floor 1 / floor 2 → residents floors 1/2 |
-| Wall panels | for **every** floor all three: screen on, load start URL (overview with live image), overlay text |
-| Repeated-ringing lockout | **15 s per button** (interval to the previous timestamp of the same event); tested in HA: first press (`unknown` → time) notifies, 8 s later not, 20 s later again |
-| Restart protection | `not_from: unavailable` – ESP reconnecting is not a press; `unknown` is deliberately **not** excluded, otherwise the very first press would be lost |
-| Mode | `parallel`, `max: 6` (two floors in quick succession both notify) |
+| Automation [`ha/klingel-automation.yaml`](ha/klingel-automation.yaml) | `event.received` per floor → push to the phone with a front-door camera still, floor in the title, one notification per floor (`tag`), own channel "Klingel", tapping opens the live image |
+| Script [`ha/klingel-kamera-skript.yaml`](ha/klingel-kamera-skript.yaml) | wall panel of that floor (Fully Kiosk): screen on → trigger motion → `load_url` camera dashboard → 90 s → start URL |
+| Dashboard [`ha/klingel-kamera-dashboard.yaml`](ha/klingel-kamera-dashboard.yaml) | `klingel-kamera`: front-door live image filling the screen |
 
-After creating it, add the three `binary_sensor.klingel_*` to `/config/alexa.yaml` under `filter.include_entities`
-(each with `entity_config` containing a name and `display_categories: MOTION_SENSOR`), then discover devices in the Alexa
-app and create one routine per floor "When Klingel <floor> detects motion → announcement".
-
-Other consumers of the events: the planned automation "Klingel abends" (doorbell in the evening) in the stair-light
-project (L1) turns on the stair light on a doorbell event when it is dark.
-
-Check before installation: start URL of the panels on floors 1/2 (the EZpad on the ground floor demonstrably starts on
-`/uebersicht`).
+Not implemented (ideas from the old draft in [`ha/historisch/`](ha/historisch/klingel-entwurf-20261004.yaml)):
+Alexa announcement per floor, recipients per floor, repeated-ringing lockout.
 
 ---
 
@@ -410,7 +399,11 @@ Check before installation: start URL of the panels on floors 1/2 (the EZpad on t
 | `docs/*.en.md` | English versions of the docs |
 | `firmware/klingel.yaml` | ESPHome configuration (D1 mini, 3 inputs, 3 events, battery-flat sensor) – BC517 state |
 | `firmware/secrets.example.yaml` | template for the secrets (without real values) |
-| `ha/klingel.yaml` | HA package draft (trigger templates for Alexa, push/panel automation) |
+| `ha/klingel-automation.yaml` | automation: push to the phone + camera on the floor's panel (in operation since 20.10.) |
+| `ha/klingel-kamera-skript.yaml` | script: wake wall panel, live image 90 s, back to start page |
+| `ha/klingel-kamera-dashboard.yaml` | dashboard `klingel-kamera` (live image filling the screen) |
+| `ha/historisch/klingel-entwurf-20261004.yaml` | **historical**: package draft never created (Alexa, repeated-ringing lockout) |
+| `docs/home-assistant.en.md` | HA integration: flow, rebuilding, acceptance, pitfalls |
 | `plaene/klingel-platine-bc517.pdf` | **current plan**: board with 3 × BC517 + 9.1 MΩ, 2 pages (assembly + schematic + test steps, solder side + jumper list), as of 20.10., German |
 | `plaene/klingel-platine-bc517-vorschau1.png` / `-vorschau2.png` | previews of both pages |
 | `plaene/klingel-platine-darlington.pdf` | substitute with 2 × BC547 as Darlington + 1 MΩ per floor (16.10., not built) |

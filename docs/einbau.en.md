@@ -129,9 +129,13 @@ Swapped floors: either swap the wires on the board or adjust the `substitutions`
 
 ## E. Home Assistant
 
-1. Create `ha/klingel.yaml` as a package (check entity names against the actually adopted ones).
-2. Test per floor: push goes to the right recipients (GF → residents ground floor; F1/F2 → residents floors 1/2),
-   front-door camera image included, all three wall panels wake up, show the overview and the overlay.
-3. Check the start URL of the panels on floor 1 and floor 2.
+Implemented since 20.10.2026 – see [home-assistant.en.md](home-assistant.en.md).
+
+1. Create dashboard, script and automation from `ha/klingel-kamera-dashboard.yaml`, `ha/klingel-kamera-skript.yaml`
+   and `ha/klingel-automation.yaml` in the HA UI (replace the placeholders).
+2. Test per floor: push with camera image arrives; only that floor's panel shows the live image for 90 s and then
+   returns to its start page.
+3. The earlier plan (package `ha/klingel.yaml`, wake all three panels, overlay) is historical – draft in
+   `ha/historisch/`.
 4. Alexa: add `binary_sensor.klingel_erdgeschoss/_etage_1/_etage_2` to `/config/alexa.yaml`, discover devices,
    one routine with announcement per floor.

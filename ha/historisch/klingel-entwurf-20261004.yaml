@@ -1,3 +1,7 @@
+# HISTORISCH (20.10.2026): Dieser Entwurf wurde nie in HA angelegt. Ersetzt durch ../klingel-automation.yaml,
+# ../klingel-kamera-skript.yaml und ../klingel-kamera-dashboard.yaml (siehe docs/home-assistant.md).
+# Bleibt als Ideensammlung stehen (Alexa-Signale, Sturmklingel-Sperre, Empfaenger je Etage).
+#
 # HA-Entwurf Tuerklingel — NOCH NICHT IN HA (Stand 04.10.2026)
 # Voraussetzung: ESPHome-Geraet „klingel" adoptiert → event.klingel_erdgeschoss / _etage_1 / _etage_2
 # (Namen nach Adoption pruefen; sie folgen den substitutions taster_1..3 im ESPHome-YAML).
